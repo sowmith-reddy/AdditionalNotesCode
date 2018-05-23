@@ -206,9 +206,9 @@ def xml_output_field_func(field_ptr,grp_name,field_op_ct,op_file):
                 and link_list[1].split('_')[0]!='TEMP' and link_list[2].split('_')[0]!='TEMP'):
                     name=link_list[2]
                     if name in dict_ind_field:
-                        note="Map to "+(''.join(dict_ind_field[name]))
-                        # note="Map to "+link_list[0]+"/"+link_list[1]+"/"+link_list[2]
-                        dict_notes[field_ptr[1].text][2]=note
+                        note="Map "+(''.join(dict_ind_field[name]))
+                        # note="map  "+link_list[0]+"/"+link_list[1]+"/"+link_list[2]
+                        dict_notes[field_ptr[1].text][2]=note+'\n'
                         # print(note)
                         # exit()
                 # if(len(link_list)==3 and (link_list[0].split('_')[0]=='TEMP'
@@ -325,8 +325,8 @@ def output_field(field_ptr,seg_name,field_tag,field_op_ct,op_file,name,ct_loop):
                 and link_list[1].split('_')[0]!='TEMP' and link_list[2].split('_')[0]!='TEMP'):
                     name_name=link_list[2]
                     if name_name in dict_ind_field:
-                        note="Map to "+(''.join(dict_ind_field[name_name]))
-                        # note="Map to "+link_list[0]+"/"+link_list[1]+"/"+link_list[2]
+                        note="Map  "+(''.join(dict_ind_field[name_name]))
+                        # note="map  "+link_list[0]+"/"+link_list[1]+"/"+link_list[2]
                         dict_notes[field_ptr[1].text][2]=note
                         # print(note)
                         # exit()
@@ -371,29 +371,29 @@ def output_field(field_ptr,seg_name,field_tag,field_op_ct,op_file,name,ct_loop):
                                 if int(dict_seg_loop[name])>1:
                                     acc_fields+= note + " "
                             if acc_fields:
-                                dict_notes[field_ptr[1].text][4]= ' populate sum of  values in ' + acc_fields + ' plus line item number'
+                                dict_notes[field_ptr[1].text][4]= ' Populate sum of  values in ' + acc_fields + ' plus line item number'
                             else:
-                                dict_notes[field_ptr[1].text][4]= ' populate line item number'
+                                dict_notes[field_ptr[1].text][4]= ' Populate line item number'
                             if 'Sum in primary' in acc_action:
                                 # acc_field+= + field_tag  + '/' + field_ptr[1].text
                                 if child[0][0][0].text in field_acc:
                                     field_acc[child[0][0][0].text].append(field_tag  + '/' + field_ptr[1].text)
-                                    dict_notes[field_ptr[1].text][4] = 'populate sum of values in the field ' + ' '.join(field_acc[field_ptr[1].text])
+                                    dict_notes[field_ptr[1].text][4] = 'Populate sum of values in the field ' + ' '.join(field_acc[field_ptr[1].text])
                                 else:
                                     field_acc[child[0][0][0].text]=field_tag  + '/' + field_ptr[1].text
-                                    dict_notes[field_ptr[1].text][4] = 'populate sum of values in the field ' + field_tag  + '/' + field_ptr[1].text
+                                    dict_notes[field_ptr[1].text][4] = 'Populate sum of values in the field ' + field_tag  + '/' + field_ptr[1].text
                         else:
                             dict_op_acc[child[0][0][0].text]=[field_tag]
                             # print(dict_seg_loop)
                             # print(name)
                             if int(dict_seg_loop[name])>1:
-                                dict_notes[field_ptr[1].text][ 4]='populate sum of values in ' + name
+                                dict_notes[field_ptr[1].text][ 4]='Populate sum of values in ' + name
                             else:
-                                dict_notes[field_ptr[1].text][ 4]='populate line item number'
+                                dict_notes[field_ptr[1].text][ 4]='Populate line item number'
                         # print(field_ptr[1].text)
                     if ('Increment primary' not in acc_action) and ('Use primary' in acc_action) and (child_child[0].text in dict_accumulator_move):
                         # print(dict_accumulator_move)
-                        dict_notes[field_ptr[1].text][4]=' populate accumulator value of ' + '/'.join(dict_accumulator_move[child_child[0].text])
+                        dict_notes[field_ptr[1].text][4]=' Populate accumulator value of ' + '/'.join(dict_accumulator_move[child_child[0].text])
                     if 'Move primary to alternate' in acc_action:
                         move=[name,field_ptr[1].text]
                         # print(move)
@@ -487,7 +487,7 @@ dict_ip_select={}
 dict_op_select={}
 #for output standard select rules
 dict_token={}
-#key-variable, value-list of lists where the variable is being populated
+#key-variable, value-list of lists where the variable is being Populated
 dict_op_token={}
 #same but for output
 note_dict_token={}
@@ -510,6 +510,8 @@ dict_seg_loop={}
 dict_op_acc={}
 
 field_set=set()
+field_set.add('sendercode')
+field_set.add('receivercode')
 variable_set=set()
 
 f=open("others/notes.txt",'w')
@@ -751,7 +753,7 @@ def function_for_functions_new(tokens,func_name,exist):
         if tokens[5]=='"':
             rule =upd + " = remove leading and trailing whitespaces from " + ref
         else:
-            rule = upd + "remove leading and trailing charactor:" + string + " from " + ref
+            rule = upd + " = remove leading and trailing character:" + string + " from " + ref
     if func_name=="trimleft":
         string=''
         if 'STRING' in rule_tokens[0][0][1]:
@@ -807,7 +809,7 @@ def function_for_functions_new(tokens,func_name,exist):
 
 def ass_func(tokens,index_start):
     print("hi")
-    print(tokens)
+    # print(tokens)
     print("FWEFFFFFFFFFFFFFFFFFF")
     rule=[]
     i=index_start
@@ -1005,7 +1007,7 @@ def function_for_functions(tokens,func_name,exist):
         if tokens[5]=='"':
             rule = upd +" = remove leading and trailing whitespaces from " + ref
         else:
-            rule =upd + " + remove leading and trailing charactor:" + string + " from " + ref
+            rule =upd + " remove leading and trailing charactor:" + string + " from " + ref
     if func_name=="trimleft":
         string=''
         if 'STRING' in rule_tokens[1]:
@@ -1091,20 +1093,22 @@ def assign_func(index,tokens,ip_or_op,dict_token):
         t=''.join(dict_ind_field[field])
         flag=1
     print(t)
+########CHANG IN ASSIGN fUNC
+    right_side =''
+    for ind,item in enumerate(ref):
+        if ind!=0:
+            right_side+=' + '
+        if item in dict_ind_field:
+            right_side+= ''.join(dict_ind_field[item])
+        else:
+            right_side+= item
 
-    # ll=rule_str.split('=')
-    # if ll[1]:
-    #     ll_str=ll[1]
-    # sec_half_str=ll_str
-    # print(sec_half_str)
-
-    if ref[0] in dict_ind_field:
-        r=''.join(dict_ind_field[ref[0]])
-        rule="If "+t+" exists, map to "+r
-
+    if right_side:
+        rule="If "+t+" exists, map "+right_side
     else:
         rule=rule_str
 
+#CHANG IN ASSIGN 
     if upd in dict_token:
         dict_token[upd].append([ref, "", rule])
     else:
@@ -1237,7 +1241,7 @@ def if_util(tokens,index):
 
 ### making dictionary for select and update statements
 def sql_func(tokens,dict_token,ip_or_op):
-    print(tokens)
+    # print(tokens)
     i=0
     while i<len(tokens):
         if tokens[i]=='where':
@@ -1288,6 +1292,8 @@ def sql_func(tokens,dict_token,ip_or_op):
             dict_token[upd] = temp
         else:
             dict_op_token[upd]=temp
+    print(new_rule)
+    # exit()
 
 ### for processing each of the statements inside the if statement
 def eval_sent(tokens, index, stack,dict_token):
@@ -1295,15 +1301,7 @@ def eval_sent(tokens, index, stack,dict_token):
     if i<len(tokens) and tokens[i]=='if':
         i=if_func(tokens,i,stack,dict_token)
         return i
-    # elif 'delete' in tokens:
-    #     while(tokens[i]!=';'):
-    #         i=i+1
-    #     return i+1
     else:
-
-        # if 'delete' in tokens:
-        #     print("Surbhi")
-        print(tokens)
         update,ref,i,rule=ass_func(tokens,i)
 
         # print(tokens[i])
@@ -1327,6 +1325,7 @@ def eval_sent(tokens, index, stack,dict_token):
 
 ### for processing if statement
 def if_func(tokens,index, stack,dict_token):
+    print(tokens)
     i=index+1
     cond_tokens, cond_str,i=if_util(tokens,i)
     temp=[cond_tokens,cond_str]
@@ -1716,7 +1715,7 @@ def format_ind_note(note):
     note = note.replace('!=""', " is not empty ")
     note = note.replace('&', " and ")
     note = note.replace('! = ""', " is not empty ")
-    note = note.replace('populate','populate ')
+    note = note.replace('Populate','Populate ')
     note= note.replace('|'," or ")
     c_t=note.split('then')
     if  len(c_t)==1:
@@ -1779,6 +1778,7 @@ def final_note_for_field(field_ptr,temp_id,inp_op):
     print("field")
     print(temp_list[0])
     list_note = find_in_dict_token(temp_list[0], note,temp_dict,inp_op)
+
     print(list_note)
     print("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$")
     print(temp_dict)
@@ -1818,18 +1818,17 @@ def final_note_for_field(field_ptr,temp_id,inp_op):
                         ll[l]='then'
                         break
                     l=l-1
-
                 if equal_ind!=0:
                     del ll[l+1:equal_ind+1]
                     if l==0:
-                        ll[0]=" map to "
+                        ll[0]=" map  "
                     else:
-                        ll.insert(l+1," map to ")
+                        ll.insert(l+1," map  ")
 
                     ind_note=' '.join(ll)
                     print("BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB")
                     print(ind_note)
-                    dest_temp=ind_note.split('map to')
+                    dest_temp=ind_note.split('map ')
                     dest=dest_temp[1]
                     print(dest)
                     dc={}
@@ -1869,7 +1868,7 @@ def final_note_for_field(field_ptr,temp_id,inp_op):
                         if dd_t.find('divide')==-1 and dd_t.find('by')!=-1:
                             dd_t=dd_t.replace('by','divided by')
                         if sql==0:
-                            ind_note=split_result+" populate " + dd_t
+                            ind_note=split_result+" Populate " + dd_t
                         else :
                             ind_note=split_result + " and name = " + dd_t
                             ind_note=ind_note.replace(' then ','')
@@ -1879,11 +1878,12 @@ def final_note_for_field(field_ptr,temp_id,inp_op):
                         dd_t=replace_add(dd_t,inp_op)
                         if dd_t.find('divide')==-1 and dd_t.find('by')!=-1:
                             dd_t=dd_t.replace('by','divided by')
-                        ind_note=split_result+' map to '+ dd_t
+                        ind_note=split_result+' map  '+ dd_t
                 else:
                     ind_note=' '.join(ll)
                 fla=1
                 # print(dd)
+
                 while fla==1:
                     print("HI")
                     fla=0
@@ -1895,16 +1895,23 @@ def final_note_for_field(field_ptr,temp_id,inp_op):
                         ind_note=ind_note.replace(' "','"')
                         fla=1
                         print("sec")
-
                 ind_note=ind_note.replace("\"then","\" then")
+
+                print(ind_note)
+
                 # print(dd)
                 print(ind_note)
                 print("ind_note")
                 ind_note=format_ind_note(ind_note)
+
                 print(ind_note)
                 print("ind_note")
+
                 final_note+= (ind_note+"\n")
                 final_note = final_note.replace('  ',' ')
+                print("KK")
+                print(final_note)
+                print("DS")
     print(final_note)
     print("fInalnote")
     if final_note.split()[0] == 'then':
@@ -1956,7 +1963,7 @@ def output_field_note(field_ptr,inp_op):
         if temp_id in dict_op_token:
             output_note=final_note_for_field(field_ptr,temp_id,1)
             if output_note[0]=='#':
-                output_note='populate ' + output_note.split('populate')[1]
+                output_note='Populate ' + output_note.split('Populate')[1]
         dict_notes[field_ptr[1].text][3]=output_note
 
 
@@ -2054,14 +2061,14 @@ def check_for_note(list_from_dict,i):
             break
         if not line:
             continue
-        if line.split()[0].lower() == 'populate':
+        if line.split()[0].lower() == 'populate' and len(line.split('+'))==1:
             note = line
             break
         note=''
         if i!=3:
             note = list_from_dict[i]
         if line.split()[0].lower() == 'if':
-            note += line
+            note += "\n"+line
         elif line.split()[0].lower() == 'select':
             note += line
             split_list = line.split()
@@ -2090,6 +2097,8 @@ def check_for_note(list_from_dict,i):
 
         elif line.split()[0].lower() == 'update':
             note += line
+        else:
+            note += "\n"+ line
     if note:
         return note
     else:
@@ -2179,7 +2188,7 @@ def output_field_note_combine(field_ptr,i_f,o_f):
             f.write(note)
             f.write('\n')
         else:
-            note=list_from_dict[5]
+            note=list_from_dict[4]
             field_ptr[5].text=note
             print("IS IT PRINTING>>>>>>>>>>>>>>>>>>>>>>IS IT >>>>>>>>>>>>>>>IS IT")
             f.write("************" + '\n')
