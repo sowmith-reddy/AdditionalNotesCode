@@ -112,9 +112,8 @@ print(result)
 make_dictionary(result,dict_token,0)
 print("PARSE")
 print(result)
-# print(dict_token)
 fo.close()
-
+# exit()
 for k,v in dict_token.items():
     print(k)
     print(v)
