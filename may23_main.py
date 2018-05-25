@@ -9,7 +9,7 @@ import re
 import tkinter as tk
 from tkinter import filedialog
 import os
-from may23_func_second import *
+from may23_func import *
 
 
 application_window = tk.Tk()
@@ -99,7 +99,7 @@ remove_comments(nf,of)
 
 jf = open('others/javafile.txt','w')
 line_list = [line.rstrip('\n') for line in open('others/newfile.txt')]
-block_code=handle_java(line_list,arr_java_inp,0)
+block_code=handle_java(line_list,arr_java_inp)
 jf.write(block_code)
 jf.close()
 
@@ -138,7 +138,7 @@ remove_comments(op_nf,op_of)
 
 op_jf = open('others/op_javafile.txt','w')
 line_list_op = [line.rstrip('\n') for line in open('others/op_newfile.txt')]
-block_code_op=handle_java(line_list_op,arr_java_out,0)
+block_code_op=handle_java(line_list_op,arr_java_out)
 op_jf.write(block_code_op)
 op_jf.close()
 
@@ -149,7 +149,6 @@ with open('others/op_javafile.txt','r') as op_f_read:
 op_result=start.parseString(op_data)
 print("OP_PARSE")
 print(op_result)
-# print(dict_op_field)
 make_dictionary(op_result,dict_op_token,1)
 op_file.close()
 
@@ -169,26 +168,21 @@ elif output_format=='XML':
     xml_make_notes(data_root)
 
 
-
 # for k,v in dict_notes.items():
 #     print(k)
 #     print(v)
 
-for k,v in dict.items():
-    print(k)
-    print(v)
 
 if output_format=='EDI':
     edi_populate_notes(data_root,input_format,output_format)
 elif output_format=='IDOC':
     edi_populate_notes(data_root,input_format,output_format)
 elif output_format=='XML':
-    print("did it enter...did it???????")
     xml_populate_notes(data_root,input_format,output_format)
 
-# for k,v in dict_notes.items():
-#     print(k)
-#     print(v)
+for k,v in dict_notes.items():
+    print(k)
+    print(v)
 
 
 write_func(data_root,etree,raw_data,answer)
