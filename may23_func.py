@@ -572,6 +572,7 @@ days = CaselessKeyword("days")
 hours = CaselessKeyword("hours")
 minutes = CaselessKeyword("minutes")
 else_if = CaselessKeyword("else if")
+while_key=CaselessKeyword('while')
 semicol = Literal(';')
 comma = Literal(',')
 mul = Literal("*")
@@ -654,14 +655,17 @@ var_assign_wo_semicol = variable.setResultsName('UPDATE') + Literal('=') + expre
 field_assign_wo_semicol = field_name_up + equal + expression
 assign_stmt_without_semicolon =(var_assign_wo_semicol | field_assign_wo_semicol | func_assign_wo_semicol)
 assign_stmt =(var_assign|field_assign |func_assign)
+While_stmt=Forward()
 if_stmt=Forward()
 select = CaselessKeyword('Select') + (variable|field_name|str_var) + CaselessKeyword('into') + (variable.setResultsName('UPDATE')|field_name_up) + CaselessKeyword('from') + variable + CaselessKeyword('where')+ conditions + semicol
 update = CaselessKeyword('Update') + (variable.setResultsName('UPDATE')|field_name_up) + CaselessKeyword('set') + assign_stmt_without_semicolon +  CaselessKeyword('where')+ conditions + semicol
 # statement=Forward()
 # if_stmt << if_key + conditions + then_key +  ((statement)|(begin_key + ZeroOrMore(statement) + end_key))+ Optional(else_key +((statement)|(begin_key + ZeroOrMore(statement) + end_key)))
 sql_stmt = update | select
-if_stmt << if_key + conditions + then_key +  Optional((declare_stmt|assign_stmt|(func_type + semicol)|if_stmt|sql_stmt)|(begin_key + ZeroOrMore(declare_stmt|assign_stmt|(func_type + semicol)|if_stmt|sql_stmt) + end_key)) + Optional(else_if+ conditions + then_key + ((declare_stmt|assign_stmt|(func_type + semicol)|sql_stmt)|(begin_key + ZeroOrMore(declare_stmt|assign_stmt|(func_type + semicol)|if_stmt|sql_stmt) + end_key))) +     Optional(else_key +((declare_stmt|assign_stmt|if_stmt|(func_type + semicol)|sql_stmt)|(begin_key + ZeroOrMore(declare_stmt|assign_stmt|(func_type + semicol)|if_stmt|sql_stmt) + end_key)))
-statement = pp.Group(declare_stmt)|pp.Group(assign_stmt)|pp.Group(func_type + semicol)|pp.Group(if_stmt)|pp.Group(sql_stmt)|conditions|(func_type)
+While_stmt << while_key + conditions + CaselessKeyword('do') + Optional((declare_stmt|assign_stmt|(func_type + semicol)|if_stmt|sql_stmt|While_stmt|CaselessKeyword('continue;')|CaselessKeyword('break;'))|(begin_key + ZeroOrMore(declare_stmt|assign_stmt|(func_type + semicol)|if_stmt|sql_stmt|While_stmt|CaselessKeyword('break;')|CaselessKeyword('continue;')) + end_key))
+if_stmt << if_key + conditions + then_key +  Optional((declare_stmt|assign_stmt|(func_type + semicol)|if_stmt|sql_stmt|While_stmt)|(begin_key + ZeroOrMore(declare_stmt|assign_stmt|(func_type + semicol)|if_stmt|sql_stmt|While_stmt) + end_key)) + Optional(else_if+ conditions + then_key + ((declare_stmt|assign_stmt|(func_type + semicol)|if_stmt|sql_stmt|While_stmt)|(begin_key + ZeroOrMore(declare_stmt|assign_stmt|(func_type + semicol)|if_stmt|sql_stmt|While_stmt) + end_key))) +     Optional(else_key +((declare_stmt|assign_stmt|if_stmt|(func_type + semicol)|sql_stmt|While_stmt)|(begin_key + ZeroOrMore(declare_stmt|assign_stmt|(func_type + semicol)|if_stmt|sql_stmt|While_stmt) + end_key)))
+statement = pp.Group(declare_stmt)|pp.Group(assign_stmt)|pp.Group(func_type + semicol)|pp.Group(if_stmt)|pp.Group(sql_stmt)|pp.Group(While_stmt)|conditions|(func_type)
+
 start = ZeroOrMore(statement)
 
 join_list=["!","&","and","or","!"]
