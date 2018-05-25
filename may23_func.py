@@ -956,8 +956,8 @@ def function_for_functions(tokens,func_name,exist):
             rule = " substring of " + ref+" from position "+str(st)+ " to "+ str(end)
             if exist==1:
                 rule=rule+" not empty "
-        else:
-            rule = upd + " = substring of " + ref+" from position "+str(st)+ " to "+ str(end)
+            else:
+                rule = upd + " = substring of " + ref+" from position "+str(st)+ " to "+ str(end)
     if func_name == "left" :
         num=''
         str_val=''
@@ -966,16 +966,11 @@ def function_for_functions(tokens,func_name,exist):
         if 'NUM' in rule_tokens[1]:
             num = int(rule_tokens[1]['NUM'][0])
         if upd=="":
-            print("DSS")
             rule =  " extract " + str(num) + " characters from left of " + ref
             if exist==1:
                 rule=rule + " and if it is empty"
             else :
                 rule = " if " + str(num) + " characters from left of " + ref  + " equals to " +str_val
-        else:
-            rule = "if " + upd + " = " + str(num) + " characters from left of " + ref
-
-        # exit()
                 # rule = "extract " + str(num) + " characters from left of " + ref
     if func_name =="right" :
         num = int(rule_tokens[1]['NUM'][0])
@@ -1012,7 +1007,7 @@ def function_for_functions(tokens,func_name,exist):
         if tokens[5]=='"':
             rule = upd +" = remove leading and trailing whitespaces from " + ref
         else:
-            rule =upd + " = remove leading and trailing charactor:" + string + " from " + ref
+            rule =upd + " remove leading and trailing charactor:" + string + " from " + ref
     if func_name=="trimleft":
         string=''
         if 'STRING' in rule_tokens[1]:
@@ -1109,28 +1104,16 @@ def assign_func(index,tokens,ip_or_op,dict_token):
             right_side+= item
 
     if right_side:
-        rule=upd + " = " + right_side
+        rule="If "+t+" exists, map "+right_side
     else:
         rule=rule_str
 
-    l=[]
-    if upd in variable_set :
-        l=[ref,'',rule]
-    elif ip_or_op==1:
-        print(ref)
-        if len(ref)==1:
-            l=[ref,'', "Hardcode "+ ref[0]]
-        else:
-        # if len(rule.split())
-            l=[ref,'',rule]
-    else:
-        l=[ref, 'if '+ t +" exists ", rule]
-#CHANG IN ASSIGN
+#CHANG IN ASSIGN 
     if upd in dict_token:
-        dict_token[upd].append(l)
+        dict_token[upd].append([ref, "", rule])
     else:
         temp = []
-        temp.append(l)
+        temp.append([ref, "", rule])
         dict_token[upd] = temp
 
     return rule
@@ -1540,7 +1523,6 @@ def make_dictionary(result,dict_token,ip_or_op):
 def find_in_dict_token(var,note,temp_dict,inp_op):
     if inp_op==0:
         print("start of find_in_dict_token")
-        print(var)
         if var not in dict_token:
             return
         temp_lists=dict_token[var]
@@ -1628,7 +1610,7 @@ def find_in_dict_token(var,note,temp_dict,inp_op):
                 else:
                     temp_note += " and " + list_temp[1] + " and " + list_temp[2]
                 list_note.append(temp_note)
-    print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+
     print(list_note)
     return list_note
 
@@ -1758,9 +1740,9 @@ def format_ind_note(note):
                 condition_list[index]=''
             elif ((var_list[0].strip() in variable_set) and (len(var_list[0].split())==1)):
                 print("or here")
-                if var_list[0].strip() not in format_dict:
-                    format_dict[var_list[0].strip()]=var_list[1]
-                    condition_list[index]=''
+
+                format_dict[var_list[0].strip()]=var_list[1]
+                condition_list[index]=''
                 print(condition_list)
                 # exit()
 
@@ -1802,8 +1784,7 @@ def final_note_for_field(field_ptr,temp_id,inp_op):
     print(temp_dict)
     if not list_note:
         return
-    if list_note[0].split()[0]=='Hardcode' :
-        return list_note[0]
+
 
     final_note=""
     print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
@@ -1935,9 +1916,7 @@ def final_note_for_field(field_ptr,temp_id,inp_op):
     print("fInalnote")
     if final_note.split()[0] == 'then':
         final_note=final_note.replace(' then  ','')
-    if (final_note.split()[0]=='then' and final_note.split()[1]=='Hardcode') :
-        # exit()
-        return final_note.split()[1] + " " + final_note.split()[2]
+
     return final_note
 
 ### to generate notes for each of the fields
