@@ -640,8 +640,8 @@ exist = CaselessKeyword("exist") + Literal('(') + (variable_ref|field_name) + Li
 empty = CaselessKeyword("empty") + Literal('(') + (field_name_up|variable) + Literal(')')
 set_func = CaselessKeyword("set") + (days|hours|minutes) + Literal('(') + (field_name_up|variable.setResultsName('UPDATE')) + comma + (field_name|variable_ref|str_var|Word(nums)) + Literal(')')
 func_type << Optional(Literal('!'))+(atoi | ntoa | mid | left | right | date |strdate | days_func | new | concat | delete | set_func | aton | exist| count | trim | eof | sum | strstr|length_str|trimleft|accum|trimright|sort|cerror|empty)
-# expression << (next_int|format|func_type|variable_ref|Word(nums+"-").setResultsName('REF')|field_name|str_var_ref)+ZeroOrMore((plus|mul|div|left_shift|right_shift|Literal('.')|minus)+ (next_int|format|func_type|set_scale|variable_ref|Word(nums+"-").setResultsName('REF')|field_name|str_var_ref))
-expression <<   ZeroOrMore('(')+ (next_int|format|func_type|variable_ref|Word(nums+"-").setResultsName('REF')|field_name|str_var_ref)+ZeroOrMore(Literal('(')) + ZeroOrMore((plus|mul|div|left_shift|right_shift|Literal('.')|minus)+ZeroOrMore(Literal('('))+ (next_int|format|func_type|set_scale|variable_ref|Word(nums+"-").setResultsName('REF')|field_name|str_var_ref)) + ZeroOrMore(Literal('('))
+expression << (next_int|format|func_type|variable_ref|Word(nums+"-").setResultsName('REF')|field_name|str_var_ref)+ZeroOrMore((plus|mul|div|left_shift|right_shift|Literal('.')|minus)+ (next_int|format|func_type|set_scale|variable_ref|Word(nums+"-").setResultsName('REF')|field_name|str_var_ref))
+# expression <<   ZeroOrMore('(')+ (next_int|format|func_type|variable_ref|Word(nums+"-").setResultsName('REF')|field_name|str_var_ref)+ZeroOrMore(Literal('(')) + ZeroOrMore((plus|mul|div|left_shift|right_shift|Literal('.')|minus)+ZeroOrMore(Literal('('))+ (next_int|format|func_type|set_scale|variable_ref|Word(nums+"-").setResultsName('REF')|field_name|str_var_ref)) + ZeroOrMore(Literal('('))
 # expression << format
 var_assign = variable.setResultsName('UPDATE') + Literal('=')  +ZeroOrMore('(')+ expression +ZeroOrMore(')') + semicol
 field_assign = field_name_up + equal + expression + semicol
@@ -1506,7 +1506,8 @@ def make_dictionary(result,dict_token,ip_or_op):
     for index, result_token in enumerate(result):
         print(result_token)
         flag = 0
-
+        if  'while' in  (name.lower() for name in result_token):
+            continue
         if result_token[0] == 'if':
             stack = []
             i = if_func(result_token, 0, stack, dict_token)
