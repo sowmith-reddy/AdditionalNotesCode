@@ -219,11 +219,13 @@ def xml_output_field_func(field_ptr,grp_name,field_op_ct,op_file):
 
         if children.tag.split('}')[1] == "ExplicitRule":
             if children.text != None:
+                print("output rule")
+                print(children.text)
                 temp_list = children.text.split(';')
                 for item in temp_list:
-                    global count
-                    count = count + 1
-                    dict_field[count] = field_ptr[1].text
+                    global op_count
+                    op_count = op_count + 1
+                    dict_op_field[op_count] = field_ptr[1].text
                 op_file.write(children.text)
                 op_file.write('\n')
 
@@ -248,6 +250,10 @@ def xml_output_field_func(field_ptr,grp_name,field_op_ct,op_file):
                     if items.tag.split('}')[1] == 'Format':
                         format = items.text
                 dict_op_date[field_ptr[0].text] = [datatype, format]
+
+    dict.setdefault(field_ptr[0].text, []).append('')
+    dict.setdefault(field_ptr[0].text, []).append(grp_name)
+    dict.setdefault(field_ptr[0].text, []).append(field_ptr[1].text)
 
     field_ct_str = str(field_op_ct)
     if len(field_ct_str) == 1:
@@ -278,7 +284,7 @@ def xml_output_particle_func(particle_ptr,grp_name,op_file):
                     op_file.write(categ.text)
                     op_file.write('\n')
         if children.tag.split('}')[1]=="XMLElementGroup":
-            xml_output_group_func(children,grp_name,field_op_ct,op_file,name,ct_loop)
+            xml_output_group_func(children,grp_name,field_op_ct,op_file)
             field_op_ct=field_op_ct+1
 
 def xml_output_group_func(group_ptr,grp_name,field_ct,op_file):
@@ -327,7 +333,7 @@ def output_field(field_ptr,seg_name,field_tag,field_op_ct,op_file,name,ct_loop):
                     if name_name in dict_ind_field:
                         note="Map  "+(''.join(dict_ind_field[name_name]))
                         # note="map  "+link_list[0]+"/"+link_list[1]+"/"+link_list[2]
-                        dict_notes[field_ptr[1].text][2]=note
+                        dict_notes[field_ptr[1].text][2]=note+'\n'
                         # print(note)
                         # exit()
                 # if(len(link_list)==3 and (link_list[0].split('_')[0]=='TEMP'
@@ -633,9 +639,10 @@ exist = CaselessKeyword("exist") + Literal('(') + (variable_ref|field_name) + Li
 empty = CaselessKeyword("empty") + Literal('(') + (field_name_up|variable) + Literal(')')
 set_func = CaselessKeyword("set") + (days|hours|minutes) + Literal('(') + (field_name_up|variable.setResultsName('UPDATE')) + comma + (field_name|variable_ref|str_var|Word(nums)) + Literal(')')
 func_type << Optional(Literal('!'))+(atoi | ntoa | mid | left | right | date |strdate | days_func | new | concat | delete | set_func | aton | exist| count | trim | eof | sum | strstr|length_str|trimleft|accum|trimright|sort|cerror|empty)
-expression << (next_int|format|func_type|variable_ref|Word(nums+"-").setResultsName('REF')|field_name|str_var_ref)+ZeroOrMore((plus|mul|div|left_shift|right_shift|Literal('.')|minus)+ (next_int|format|func_type|set_scale|variable_ref|Word(nums+"-").setResultsName('REF')|field_name|str_var_ref))
+# expression << (next_int|format|func_type|variable_ref|Word(nums+"-").setResultsName('REF')|field_name|str_var_ref)+ZeroOrMore((plus|mul|div|left_shift|right_shift|Literal('.')|minus)+ (next_int|format|func_type|set_scale|variable_ref|Word(nums+"-").setResultsName('REF')|field_name|str_var_ref))
+expression <<   ZeroOrMore('(')+ (next_int|format|func_type|variable_ref|Word(nums+"-").setResultsName('REF')|field_name|str_var_ref)+ZeroOrMore(Literal('(')) + ZeroOrMore((plus|mul|div|left_shift|right_shift|Literal('.')|minus)+ZeroOrMore(Literal('('))+ (next_int|format|func_type|set_scale|variable_ref|Word(nums+"-").setResultsName('REF')|field_name|str_var_ref)) + ZeroOrMore(Literal('('))
 # expression << format
-var_assign = variable.setResultsName('UPDATE') + Literal('=') + expression + semicol
+var_assign = variable.setResultsName('UPDATE') + Literal('=')  +ZeroOrMore('(')+ expression +ZeroOrMore(')') + semicol
 field_assign = field_name_up + equal + expression + semicol
 operator = (Literal('=')|not_equal|greater_equal|greater|less|greater_equal|less_equal).setResultsName('OPERATOR')
 join_op = ((and_key|or_key|CaselessKeyword("and")|CaselessKeyword("or"))).setResultsName('JOIN_OP')
@@ -750,10 +757,10 @@ def function_for_functions_new(tokens,func_name,exist):
         string=''
         if 'STRING' in rule_tokens[0][0][1]:
             string = rule_tokens[0][0][1]['STRING'][0]
-        if tokens[5]=='"':
+        if ',' in tokens:
             rule =upd + " = remove leading and trailing whitespaces from " + ref
         else:
-            rule = upd + " = remove leading and trailing character:" + string + " from " + ref
+            rule = upd + " = remove leading and trailing characters" + string + " from " + ref
     if func_name=="trimleft":
         string=''
         if 'STRING' in rule_tokens[0][0][1]:
@@ -1093,7 +1100,13 @@ def assign_func(index,tokens,ip_or_op,dict_token):
         t=''.join(dict_ind_field[field])
         flag=1
     print(t)
-########CHANG IN ASSIGN fUNC
+
+    # ll=rule_str.split('=')
+    # if ll[1]:
+    #     ll_str=ll[1]
+    # sec_half_str=ll_str
+    # print(sec_half_str)
+
     right_side =''
     for ind,item in enumerate(ref):
         if ind!=0:
@@ -1104,20 +1117,31 @@ def assign_func(index,tokens,ip_or_op,dict_token):
             right_side+= item
 
     if right_side:
-        rule="If "+t+" exists, map "+right_side
+        rule=upd + " = " + right_side
     else:
         rule=rule_str
 
-#CHANG IN ASSIGN 
+    l=[]
+    if upd in variable_set :
+        l=[ref,'',rule]
+    elif ip_or_op==1:
+        print(ref)
+        if len(ref)==1:
+            l=[ref,'', "Hardcode "+ ref[0]]
+        else:
+        # if len(rule.split())
+            l=[ref,'',rule]
+    else:
+        l=[ref, 'if '+ t +" exists ", rule]
+#CHANG IN ASSIGN
     if upd in dict_token:
-        dict_token[upd].append([ref, "", rule])
+        dict_token[upd].append(l)
     else:
         temp = []
-        temp.append([ref, "", rule])
+        temp.append(l)
         dict_token[upd] = temp
 
     return rule
-
 ### for processing the conditions of if functions
 def if_util(tokens,index):
     cond=[]
@@ -1418,10 +1442,15 @@ def remove_comments(nf, of):
     of.close()
 
 
-def handle_java(line_list,arr_java):
+def handle_java(line_list,arr_java,null_flag):
     for ind, line in enumerate(line_list):
         if not line:
             continue
+        if (null_flag == 1):
+            line_list[ind] = ''
+            if ';' in line:
+                null_flag = 0
+                continue
         obj_split = line.split(' ', 1)
         if obj_split[0].lower() == 'object':
             for item in obj_split[1].split():
@@ -1448,6 +1477,8 @@ def handle_java(line_list,arr_java):
                 flag=1
                 break
         if flag == 1:
+            if ';' not in line:
+                null_flag=1
             line_list[ind] = left_part + " = java;"
             # print("final_line")
             # print(line_list[ind])
@@ -1559,7 +1590,7 @@ def find_in_dict_token(var,note,temp_dict,inp_op):
         if var not in dict_ind_field:
             print("NOTES FOR VARIABLE")
             print(list_temp)
-            if list_temp[2].split()[0].lower()=='select':
+            if list_temp[2] and list_temp[2].split()[0].lower()=='select':
                 print("NOTES FOR SQL STATEMENTS")
                 str_t=list_temp[2].split()[1]+" "+(' '.join(list_temp[2].split()[4:]))
                 temp_dict[var]=[str_t]
@@ -1623,10 +1654,13 @@ def replace_add(st,inp_op):
     for value in list_of_values:
         value=value.strip()
         if value in field_set:
+            var_type=''
             if inp_op==0:
-                var_type=dict_type[value]
+                if value in dict_type:
+                    var_type=dict_type[value]
             else:
-                var_type=dict_op_type[value]
+                if value in dict_op_type:
+                    var_type=dict_op_type[value]
             if var_type=='integer':
                 flag=1
                 break
@@ -1704,6 +1738,66 @@ def get_dest(dest,temp_dict,dc):
     return '+'.join(temp_list)
 
 ### to the left sided of the if statement, remove the conditions with variables in it
+# def format_ind_note(note):
+#     note=note.replace('=',' = ')
+#     ll=note.split()
+#     for i in ll:
+#         if i=='CODELIST':
+#             return note
+#     print("entering formatting::::::")
+#     format_dict={}
+#     note = note.replace('!=""', " is not empty ")
+#     note = note.replace('&', " and ")
+#     note = note.replace('! = ""', " is not empty ")
+#     note = note.replace('Populate','Populate ')
+#     note= note.replace('|'," or ")
+#     c_t=note.split('then')
+#     if  len(c_t)==1:
+#         return note
+#     condition_list = re.split('and', c_t[0])
+#     print("result of splitting on and")
+#     print(condition_list)
+#     for  index,condition in enumerate(condition_list):
+#         print(condition)
+#         condition=condition.replace('Else','')
+#         condition=condition.replace('if','')
+#         condition=condition.replace('If','')
+#         condition=condition.replace(';','')
+#         var_list=condition.split('=')
+#         print("result of splitting on ========")
+#         print(var_list)
+#         if len(var_list)==2:
+#             print("is it here")
+#             if var_list[0].strip()==var_list[1].strip():
+#                 print("is it an equal condition")
+#                 print(condition)
+#                 condition_list[index]=''
+#             elif ((var_list[0].strip() in variable_set) and (len(var_list[0].split())==1)):
+#                 print("or here")
+#
+#                 format_dict[var_list[0].strip()]=var_list[1]
+#                 condition_list[index]=''
+#                 print(condition_list)
+#                 # exit()
+#
+#     # for item in enumerate(condition_list):
+#     #     if item=='':
+#     #         condition_list.remove(item)
+#     condition_list = list(filter(None, condition_list))
+#     print("this is the foramtting dictionary")
+#     print(format_dict)
+#
+#     for index,condition in enumerate(condition_list):
+#         var_list = condition.split()
+#         for ind,item in enumerate(var_list):
+#             if item.strip() in format_dict:
+#                 var_list[ind]=format_dict[item]
+#         condition_list[index]=' '.join(var_list)
+#
+#     return_note=' and '.join(condition_list)
+#     # return_note='If '+return_note
+#     return return_note+" then "+c_t[1]
+
 def format_ind_note(note):
     note=note.replace('=',' = ')
     ll=note.split()
@@ -1723,7 +1817,17 @@ def format_ind_note(note):
     condition_list = re.split('and', c_t[0])
     print("result of splitting on and")
     print(condition_list)
-    for  index,condition in enumerate(condition_list):
+    for x_ind, x in enumerate(condition_list):
+        condition_list[x_ind] = x.strip()
+    print("after removing spaces")
+    print(condition_list)
+    condition_list_new=[]
+    for x in condition_list:
+        if x.lower() not in (name.lower() for name in condition_list_new):
+            condition_list_new.append(x)
+    # condition_list=list(set(condition_list))
+    print(condition_list_new)
+    for  index,condition in enumerate(condition_list_new):
         print(condition)
         condition=condition.replace('Else','')
         condition=condition.replace('if','')
@@ -1737,33 +1841,32 @@ def format_ind_note(note):
             if var_list[0].strip()==var_list[1].strip():
                 print("is it an equal condition")
                 print(condition)
-                condition_list[index]=''
+                condition_list_new[index]=''
             elif ((var_list[0].strip() in variable_set) and (len(var_list[0].split())==1)):
                 print("or here")
 
                 format_dict[var_list[0].strip()]=var_list[1]
-                condition_list[index]=''
-                print(condition_list)
+                condition_list_new[index]=''
+                print(condition_list_new)
                 # exit()
 
     # for item in enumerate(condition_list):
     #     if item=='':
     #         condition_list.remove(item)
-    condition_list = list(filter(None, condition_list))
+    condition_list_new = list(filter(None, condition_list_new))
     print("this is the foramtting dictionary")
     print(format_dict)
 
-    for index,condition in enumerate(condition_list):
+    for index,condition in enumerate(condition_list_new):
         var_list = condition.split()
         for ind,item in enumerate(var_list):
             if item.strip() in format_dict:
                 var_list[ind]=format_dict[item]
-        condition_list[index]=' '.join(var_list)
+        condition_list_new[index]=' '.join(var_list)
 
-    return_note=' and '.join(condition_list)
+    return_note=' and '.join(condition_list_new)
     # return_note='If '+return_note
     return return_note+" then "+c_t[1]
-
 
 def final_note_for_field(field_ptr,temp_id,inp_op):
     if inp_op==0:
@@ -1785,7 +1888,8 @@ def final_note_for_field(field_ptr,temp_id,inp_op):
     if not list_note:
         return
 
-
+    if list_note[0].split()[0]=='Hardcode' :
+        return list_note[0]
     final_note=""
     print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
     print(list_note)
@@ -2068,7 +2172,7 @@ def check_for_note(list_from_dict,i):
         if i!=3:
             note = list_from_dict[i]
         if line.split()[0].lower() == 'if':
-            note += "\n"+line
+            note += line
         elif line.split()[0].lower() == 'select':
             note += line
             split_list = line.split()
@@ -2134,7 +2238,7 @@ def change_format(note,i_f,o_f):
                         print(field_id)
                         field_name_list = dict[field_id]
                         token_list[ind] = field_name_list[1]+"/"+field_name_list[2]
-                    if i_f=='EDI':
+                    if o_f=='EDI':
                         print('token')
                         print(token)
                         print(dict_tag_out[token])
@@ -2301,16 +2405,19 @@ def output_group_note_combine(group_ptr,inp_format,out_format):
             output_seg_note_combine(children,inp_format,out_format)
 
 def xml_output_rec_note_combine(rec_ptr,i_f,o_f):
+    # print("rec")
     for children in rec_ptr:
         if children.tag.split('}')[1]=="Field":
             output_field_note_combine(children,i_f,o_f)
 
 def xml_output_particle_note_combine(particle_ptr,i_f,o_f):
+    # print("particle")
     for children in particle_ptr:
         if children.tag.split('}')[1]=="XMLElementGroup":
             xml_output_group_note_combine(children,i_f,o_f)
 
 def xml_output_group_note_combine(group_ptr,i_f,o_f):
+    # print("grouop")
     for children in group_ptr:
         if children.tag.split('}')[1]=="XMLElementGroup":
             xml_output_group_note_combine(children,i_f,o_f)
@@ -2326,7 +2433,7 @@ def edi_populate_notes(data_root,i_f,o_f):
 
 def xml_populate_notes(data_root,i_f,o_f):
     for child in data_root[4][0]:
-        if child.tag.split('}')[1] == "Group":
+        if child.tag.split('}')[1] == "XMLElementGroup":
             xml_output_group_note_combine(child,i_f,o_f)
 
 
