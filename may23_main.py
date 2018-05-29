@@ -9,7 +9,8 @@ import re
 import tkinter as tk
 from tkinter import filedialog
 import os
-from remove_notes import *
+import shutil
+
 
 
 application_window = tk.Tk()
@@ -40,8 +41,20 @@ answer = filedialog.askopenfilename(parent=application_window,
                                     filetypes=my_filetypes)
 print(answer)
 # filehandler = open("VFS_ALL_BCFACC_O_810_4010.mxl"ll,"r",'utf-8')
-filehandler = open(answer,"r",'utf-8')
+dest_list=answer.split("/")
+temp=dest_list[len(dest_list)-1]
+dest_list[len(dest_list)-1]='others'
+dest_list.append(temp)
+dst='/'.join(dest_list)
+cwd=os.getcwd()
+cwd=cwd.replace('\\','/')+'/'+'others'
+dst=cwd+"/"+temp
+print(dst)
+shutil.copy(answer,dst)
+print(dst)
 
+filehandler = open(dst,"r",'utf-8')
+print(filehandler)
 raw_data = et.parse(filehandler)
 data_root = raw_data.getroot()
 filehandler.close()
@@ -52,8 +65,8 @@ output_format=''
 inp_format_tag=data_root[3][0].tag
 out_format_tag=data_root[4][0].tag
 
-
-empty_notes(data_root,etree,raw_data,answer)
+from remove_notes import *
+empty_notes(data_root,etree,raw_data,dst)
 
 
 # filehandler_ddf = open("VFS_ALL_BCFACC_O_810_4010.ddf","r")
