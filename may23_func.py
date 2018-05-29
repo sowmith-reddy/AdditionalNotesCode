@@ -643,7 +643,7 @@ right = CaselessKeyword("right") + ZeroOrMore(Literal('(')) + ((variable_ref|exp
 date = (CaselessKeyword("date") + ZeroOrMore(Literal('(')) + (str_var_format|(Word(nums))) + ZeroOrMore(comma + (func_type|str_var|field_name|variable_ref|(Word(nums)))) + ZeroOrMore(Literal(')')))
 strdate = CaselessKeyword("strdate") + ZeroOrMore(Literal('(')) + (variable_ref|str_var|field_name)+comma+ str_var_format+comma+(field_name_up|variable.setResultsName('UPDATE'))+ZeroOrMore(Literal(')'))
 new = CaselessKeyword("new") +ZeroOrMore(Literal('(')) + (str_var|field_name|variable) + (ZeroOrMore(comma+(str_var|field_name|variable)))+Literal(")")
-accum = CaselessKeyword("accum") + ZeroOrMore(Literal('(')) + Word(nums) + ZeroOrMore(Literal(')'))
+accum = CaselessKeyword("accum") + ZeroOrMore(Literal('(')) + Word(nums).setResultsName('REF') + ZeroOrMore(Literal(')'))
 concat = CaselessKeyword("concat") + ZeroOrMore(Literal('(')) + (field_name_up|variable.setResultsName('UPDATE')) +comma+ (field_name|str_var|variable_ref) + comma + Word(nums).setResultsName('NUM')+ ZeroOrMore(Literal(')'))
 delete = CaselessKeyword("delete") + ZeroOrMore(Literal('(')) + (field_name|variable|grp_name_with_arr) + ZeroOrMore(Literal(')'))
 days_func = CaselessKeyword("days") + ZeroOrMore(Literal('(')) + (field_name|variable_ref|str_var_ref|Word(nums).setResultsName('REF')) + ZeroOrMore(Literal(')'))
@@ -708,7 +708,7 @@ def function_for_functions_new(tokens,func_name,exist):
         #     return ""
     if 'accum' in rule_tokens_list:
         print("WQDWQ")
-        ref = 'accumulator '
+        ref = 'accumulator ' + ref
     if 'UPDATE' in rule_tokens[0][0][1] :
         upd = rule_tokens[0][0][1]['UPDATE'][0]
     if func_name == "ntoa" :
