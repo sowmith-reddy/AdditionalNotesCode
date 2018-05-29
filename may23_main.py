@@ -29,7 +29,7 @@ cwd=cwd.replace('\\','/')+'/'+'others'
 if not os.path.exists(cwd):
     os.makedirs(cwd)
 answer=''
-from may28_func import *
+from may23_func import *
 
 # print(cwd)
 # exit()
