@@ -30,7 +30,7 @@ cwd=cwd.replace('\\','/')+'/'+'others'
 if not os.path.exists(cwd):
     os.makedirs(cwd)
 answer=''
-from may23_func import *
+from surbi_func import *
 
 # print(cwd)
 # exit()
@@ -65,7 +65,7 @@ output_format=''
 inp_format_tag=data_root[3][0].tag
 out_format_tag=data_root[4][0].tag
 
-from remove_notes import *
+from surbi_remove_notes import *
 empty_notes(data_root,etree,raw_data,dst)
 
 
@@ -86,6 +86,7 @@ if inp_format_tag.split('}')[1]=='EDISyntax':
     # allcases = data_root_ddf.findall(".//EDIELEM")
 
 elif inp_format_tag.split('}')[1]=='PosSyntax':
+    input_format='IDOC'
     input_format='IDOC'
     print("DW")
     # exit()
@@ -123,6 +124,9 @@ block_code=handle_java(line_list,arr_java_inp,0)
 jf.write(block_code)
 jf.close()
 
+# print("printing arr_java")
+# print(arr_java_inp)
+
 with open('others/javafile.txt','r') as f_read:
     data=f_read.read().replace('\n',' ')
 
@@ -159,7 +163,7 @@ remove_comments(op_nf,op_of)
 
 op_jf = open('others/op_javafile.txt','w')
 line_list_op = [line.rstrip('\n') for line in open('others/op_newfile.txt')]
-block_code_op=handle_java(line_list_op,arr_java_out,0)
+block_code_op=handle_java(line_list_op,arr_java_inp,0)
 op_jf.write(block_code_op)
 op_jf.close()
 
@@ -190,14 +194,14 @@ elif output_format=='IDOC':
 elif output_format=='XML':
     xml_make_notes(data_root)
 
-print("printing notes set")
-print(notes_set)
 
 
 # for k,v in dict_notes.items():
 #     print(k)
 #     print(v)
-
+print(link_notes_set)
+print(standard_notes_set)
+print(extended_notes_set)
 
 if output_format=='EDI':
     edi_populate_notes(data_root,input_format,output_format)
@@ -219,17 +223,21 @@ write_func(data_root,etree,raw_data,answer)
 # print(field_set)
 #
 #
-# for k, v in dict_notes.items():
-#     print(k)
-#     print(v)
-
-
-print("printing notes set later")
-print(notes_set)
-
 for k, v in dict_notes.items():
     print(k)
     print(v)
+
+
+print(link_notes_set)
+print(standard_notes_set)
+print(extended_notes_set)
+
+
+
 # for k,v in dict_token.items():
 #     print(k)
 #     print(v)
+
+lf = open('others/logfile.txt','w')
+make_log(lf)
+lf.close()

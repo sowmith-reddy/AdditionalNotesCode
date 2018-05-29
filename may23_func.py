@@ -14,7 +14,6 @@ ip_count=-1
 op_count=-1
 
 
-
 def xml_field_func(field_ptr,grp_name,field_ct,fo,xml_tag,rec_id):
     dict_useless[field_ptr[0].text] = field_ptr[1].text
     dict_name_id[field_ptr[1].text] = field_ptr[0].text
@@ -230,10 +229,10 @@ def xml_output_field_func(field_ptr,grp_name,field_op_ct,op_file,group_ptr):
             print("SDSD")
             temp_ip=children.text
             if temp_ip in dict:
-                notes_set.add(temp_id)
+                link_notes_set.add(temp_id)
                 link_list=dict[temp_ip]
-                if(len(link_list)==3 and link_list[0].split('_')[0]!='TEMP'
-                and link_list[1].split('_')[0]!='TEMP' and link_list[2].split('_')[0]!='TEMP'):
+                if(len(link_list)==3 and link_list[0].split('_')[0].lower()!='temp'
+                and link_list[1].split('_')[0].lower()!='temp' and link_list[2].split('_')[0].lower()!='temp'):
                     name=link_list[2]
                     if name in dict_ind_field:
                         note="Map "+(''.join(dict_ind_field[name]))
@@ -263,7 +262,7 @@ def xml_output_field_func(field_ptr,grp_name,field_op_ct,op_file,group_ptr):
 
         if children.tag.split('}')[1]=='ImplicitRuleDef':
             if children[0].tag.split('}')[1]=='UseConstant':
-                notes_set.add(temp_id)
+                standard_notes_set.add(temp_id)
                 dict_ip_ct[field_ptr[0].text]=children[0][0].text
 
             if children[0].tag.split('}')[1]=='UseSelect':
@@ -274,9 +273,9 @@ def xml_output_field_func(field_ptr,grp_name,field_op_ct,op_file,group_ptr):
                 mapfrom=children[0][3][0].text
                 fieldto=children[0][3][1].text
                 dict_ip_select[fieldto]=[tablename,subtable,mapfrom,fieldfrom]
-                notes_set.add(fieldto)
+                standard_notes_set.add(fieldto)
             if children[0].tag.split('}')[1] == 'UseSystemVariable':
-                notes_set.add(temp_id)
+                standard_notes_set.add(temp_id)
                 datatype = ''
                 format = ''
                 for items in field_ptr[12]:
@@ -321,6 +320,9 @@ def xml_output_particle_func(particle_ptr,grp_name,op_file):
         if children.tag.split('}')[1]=="XMLElementGroup":
             xml_output_group_func(children,grp_name,field_op_ct,op_file)
             field_op_ct=field_op_ct+1
+        if children.tag.split('}')[1]=="XMLParticleGroup":
+            xml_output_particle_func(children,grp_name,op_file)
+
 
 def xml_output_group_func(group_ptr,grp_name,field_ct,op_file):
     for children in group_ptr:
@@ -361,10 +363,10 @@ def output_field(field_ptr,seg_name,field_tag,field_op_ct,op_file,name,ct_loop):
         if child.tag.split('}')[1]=="Link":
             temp_ip=child.text
             if temp_ip in dict:
-                notes_set.add(temp_id)
+                link_notes_set.add(temp_id)
                 link_list=dict[temp_ip]
-                if(len(link_list)==3 and link_list[0].split('_')[0]!='TEMP'
-                and link_list[1].split('_')[0]!='TEMP' and link_list[2].split('_')[0]!='TEMP'):
+                if(len(link_list)==3 and link_list[0].split('_')[0].lower()!='temp'
+                and link_list[1].split('_')[0].lower()!='temp' and link_list[2].split('_')[0].lower()!='temp'):
                     name_name=link_list[2]
                     if name_name in dict_ind_field:
                         note="Map  "+(''.join(dict_ind_field[name_name]))
@@ -390,7 +392,7 @@ def output_field(field_ptr,seg_name,field_tag,field_op_ct,op_file,name,ct_loop):
 
         if child.tag.split('}')[1]=='ImplicitRuleDef':
             if child[0].tag.split('}')[1]=='UseConstant':
-                notes_set.add(temp_id)
+                standard_notes_set.add(temp_id)
                 dict_op_ct[field_ptr[0].text]=child[0][0].text
             acc_note = ''
             acc_flag = 0
@@ -408,13 +410,11 @@ def output_field(field_ptr,seg_name,field_tag,field_op_ct,op_file,name,ct_loop):
                             acc_note += " use the value of accumulator " + acc_id
                         if acc_child.text == 'Move primary to alternate':
                             acc_note += ' Move accumulator ' + acc_id + ' value to '
-                        if acc_child.text=='Sum in primary':
-                            acc_note+=" Use sum of all values of accumulator " + acc_id
                         if acc_child.tag.split('}')[1] == 'AccumulatorAlternate':
                             acc_note += " Accumulator " + acc_child.text
                             print(acc_note)
-
                         dict_notes[field_ptr[1].text][4] = acc_note
+                standard_notes_set.add(temp_id)
             if child[0].tag.split('}')[1]=='UseSelect':
                 fieldfrom=field_ptr[0].text
                 tablename_temp = child[0][0].text.split()
@@ -423,7 +423,7 @@ def output_field(field_ptr,seg_name,field_tag,field_op_ct,op_file,name,ct_loop):
                 mapfrom=child[0][3][0].text
                 fieldto=child[0][3][1].text
                 dict_op_select[fieldto]=[tablename,subtable,mapfrom,fieldfrom]
-                notes_set.add(fieldto)
+                standard_notes_set.add(fieldto)
             if child[0].tag.split('}')[1] == 'UseSystemVariable':
                 datatype = ''
                 format = ''
@@ -433,7 +433,7 @@ def output_field(field_ptr,seg_name,field_tag,field_op_ct,op_file,name,ct_loop):
                     if items.tag.split('}')[1] == 'Format':
                         format = items.text
                 dict_op_date[field_ptr[0].text] = [datatype, format]
-                notes_set.add(temp_id)
+                standard_notes_set.add(temp_id)
 
     dict.setdefault(field_ptr[0].text, []).append('')
     dict.setdefault(field_ptr[0].text, []).append(seg_name)
@@ -526,7 +526,9 @@ dict_accumulator_move={}
 dict_seg_loop={}
 dict_op_acc={}
 
-notes_set=set()
+link_notes_set=set()
+standard_notes_set=set()
+extended_notes_set=set()
 field_set=set()
 field_set.add('sendercode')
 field_set.add('receivercode')
@@ -613,10 +615,10 @@ declare_stmt = var_type.setResultsName('VARTYPE') + identifier + semicol
 arr_exp = ZeroOrMore(Literal('[') + variable + Literal(']'))
 field_name_up = (ZeroOrMore(Literal('$') + variable + arr_exp + Literal('.')) + Literal('#') + variable.setResultsName('UPDATE') + arr_exp)
 field_name = (ZeroOrMore(Literal('$') + variable + arr_exp + Literal('.')) + Literal('#') + variable.setResultsName('REF') + arr_exp)
-str_var=((Literal('"')|Literal("'")) + Word(alphanums+''+" " +"_"+"\\"+"|"+"/"+'%'+'$'+"#" +"-"+"."+":" + "=" +')'+'(' + "*" + "<" + ">" + "+").setResultsName('STRING')+(Literal('"')|Literal("'")))|(Literal('"')+Literal('"'))|Literal("'")+Literal("'")
-str_var_ref=(Literal('"')|Literal("'")) + Word(alphanums+''+" "+"_"+"\\"+"|"+"/"+'%'+'$'+"#"+"-"+"."+":"+'('+')'+"="+"*"+ "<" + ">" + "+").setResultsName('REF') +(Literal('"')|Literal("'"))|(Literal('"')+Literal('"'))|Literal("'")+Literal("'")
-str_var_format=(Literal('"')|Literal("'")) + Word(alphanums+''+' '+"_"+"\\"+"|"+"/"+'%'+'$'+"#"+"-"+"."+":"+"="+"*"+'('+')'+ "<" + ">" + "+").setResultsName('FORMAT') +(Literal('"')|Literal("'"))|(Literal('"')+Literal('"'))|Literal("'")+Literal("'")
-str_var_up=(Literal('"')|Literal("'")) + Word(alphanums+''+' '+"_"+"\\"+"|"+"/"+'%'+'$'+"#"+"-"+"."+":"+"="+"*"+'('+')'+ "<" + ">" + "+").setResultsName('UPDATE') +(Literal('"')|Literal("'"))|(Literal('"')+Literal('"'))|Literal("'")+Literal("'")
+str_var=((Literal('"')|Literal("'")) + Word(alphanums+''+" " +"_"+"\\"+"|"+"/"+'%'+'$'+"#" +"-"+"."+":"+"=" +')'+'(' + "*" + "<" + ">").setResultsName('STRING')+(Literal('"')|Literal("'")))|(Literal('"')+Literal('"'))|Literal("'")+Literal("'")
+str_var_ref=(Literal('"')|Literal("'")) + Word(alphanums+''+" "+"_"+"\\"+"|"+"/"+'%'+'$'+"#"+"-"+"."+":"+'('+')'+"="+"*"+ "<" + ">").setResultsName('REF') +(Literal('"')|Literal("'"))|(Literal('"')+Literal('"'))|Literal("'")+Literal("'")
+str_var_format=(Literal('"')|Literal("'")) + Word(alphanums+''+' '+"_"+"\\"+"|"+"/"+'%'+'$'+"#"+"-"+"."+":"+"="+"*"+'('+')'+ "<" + ">").setResultsName('FORMAT') +(Literal('"')|Literal("'"))|(Literal('"')+Literal('"'))|Literal("'")+Literal("'")
+str_var_up=(Literal('"')|Literal("'")) + Word(alphanums+''+' '+"_"+"\\"+"|"+"/"+'%'+'$'+"#"+"-"+"."+":"+"="+"*"+'('+')'+ "<" + ">").setResultsName('UPDATE') +(Literal('"')|Literal("'"))|(Literal('"')+Literal('"'))|Literal("'")+Literal("'")
 group_name= Literal('$') + variable.setResultsName('REF')
 grp_name_with_arr = Literal('$') + variable.setResultsName('REF') +arr_exp
 expression=Forward()
@@ -658,11 +660,11 @@ expression <<   ZeroOrMore('(')+ (next_int|format|func_type|variable_ref|Word(nu
 # expression << format
 var_assign = variable.setResultsName('UPDATE') + Literal('=')  +ZeroOrMore('(')+ expression +ZeroOrMore(')') + semicol
 field_assign = field_name_up + equal + expression + semicol
-operator = (Literal('=')|not_equal|less_equal|greater_equal|greater|less|greater_equal|plus|minus|mul|div).setResultsName('OPERATOR')
+operator = (Literal('=')|not_equal|less_equal|greater_equal|greater|less|greater_equal).setResultsName('OPERATOR')
 join_op = ((and_key|or_key|CaselessKeyword("and")|CaselessKeyword("or"))).setResultsName('JOIN_OP')
 # condition = (func_type + operator + (func_type|variable.setResultsName('UPDATE')|Word(nums+"-"+'.').setResultsName('UPDATE')|field_name_up|str_var_up))|((variable_ref|field_name) + operator + (func_type|Word(nums+"-"+'.')|variable_ref|field_name|str_var))|func_type
 # conditions = condition + ZeroOrMore(join_op + condition)
-condition = (ZeroOrMore(Literal('('))+func_type +ZeroOrMore(Literal('('))+ ZeroOrMore(operator +ZeroOrMore(Literal('('))+ (Word(nums+"-"+".").setResultsName('UPDATE')|func_type|variable.setResultsName('UPDATE')|field_name_up|str_var_up)+ZeroOrMore(Literal(')'))) +ZeroOrMore(Literal(')')))|(ZeroOrMore(Literal('('))+(variable_ref|field_name) +ZeroOrMore(Literal('('))+ ZeroOrMore(operator + ZeroOrMore(Literal('('))+(Word(nums+"-"+".")|func_type|variable_ref|field_name|str_var)+ZeroOrMore(Literal(')')))+ZeroOrMore(Literal(')')))|func_type
+condition = (ZeroOrMore(Literal('('))+func_type +ZeroOrMore(Literal('('))+ ZeroOrMore(operator +ZeroOrMore(Literal('('))+ (func_type|Word(nums+"-"+'.').setResultsName('UPDATE')|variable.setResultsName('UPDATE')|field_name_up|str_var_up)+ZeroOrMore(Literal(')'))) +ZeroOrMore(Literal(')')))|(ZeroOrMore(Literal('('))+(variable_ref|field_name) +ZeroOrMore(Literal('('))+ ZeroOrMore(operator + ZeroOrMore(Literal('('))+(func_type|Word(nums+"-"+'.')|variable_ref|field_name|str_var)+ZeroOrMore(Literal(')')))+ZeroOrMore(Literal(')')))|func_type
 conditions = ZeroOrMore(Literal('('))+condition +ZeroOrMore(Literal('('))+ ZeroOrMore(join_op +ZeroOrMore(Literal('('))+ condition+ZeroOrMore(Literal(')')))
 func_assign = (variable.setResultsName('UPDATE')|field_name_up) + equal + func_type + semicol
 func_assign_wo_semicol = (variable.setResultsName('UPDATE')|field_name_up) + equal + func_type
@@ -672,7 +674,7 @@ assign_stmt_without_semicolon =(var_assign_wo_semicol | field_assign_wo_semicol 
 assign_stmt =(var_assign|field_assign |func_assign)
 While_stmt=Forward()
 if_stmt=Forward()
-select = CaselessKeyword('Select') + (variable|field_name|str_var) + ZeroOrMore(comma+(variable|field_name|str_var)) + CaselessKeyword('into') + (variable.setResultsName('UPDATE')|field_name_up) + CaselessKeyword('from') + variable + CaselessKeyword('where')+ conditions + semicol
+select = CaselessKeyword('Select') + (variable|field_name|str_var) + ZeroOrMore(comma+(variable|field_name|str_var)) + CaselessKeyword('into') + (variable.setResultsName('UPDATE')|field_name_up) + ZeroOrMore(comma+(variable.setResultsName('UPDATE')|field_name_up)) + CaselessKeyword('from') + variable + CaselessKeyword('where')+ conditions + semicol
 update = CaselessKeyword('Update') + (variable.setResultsName('UPDATE')|field_name_up) + CaselessKeyword('set') + assign_stmt_without_semicolon +  CaselessKeyword('where')+ conditions + semicol
 # statement=Forward()
 # if_stmt << if_key + conditions + then_key +  ((statement)|(begin_key + ZeroOrMore(statement) + end_key))+ Optional(else_key +((statement)|(begin_key + ZeroOrMore(statement) + end_key)))
@@ -933,7 +935,7 @@ def ass_func(tokens,index_start):
     rule_tokens=repr(rule_tokens[0])
     rule_tokens=eval(rule_tokens)
     print(rule_tokens)
-    x=''
+    x=""
     if 'UPDATE' in rule_tokens[1]:
         x=rule_tokens[1]['UPDATE'][0]
     y=""
@@ -2144,6 +2146,8 @@ def xml_output_particle_note(particle_ptr):
     for children in particle_ptr:
         if children.tag.split('}')[1]=="XMLElementGroup":
             xml_output_group_note(children)
+        if children.tag.split('}')[1]=="XMLParticleGroup":
+            xml_output_particle_note(children)
 
 def xml_output_group_note(group_ptr):
     for children in group_ptr:
@@ -2194,7 +2198,7 @@ def check_for_note(list_from_dict,i):
             break
         if not line:
             continue
-        if (line.split()[0].lower() == 'populate' or line.split()[0].lower() == 'hardcode' )and len(line.split('+'))==1:
+        if (line.split()[0].lower() == 'populate' or line.split()[0].lower() == 'hardcode') and len(line.split('+'))==1:
             note = line
             break
         note=''
@@ -2279,9 +2283,16 @@ def change_format(note,i_f,o_f):
 
 
 
-def output_field_note_combine(field_ptr,i_f,o_f):
+def output_field_note_combine(field_ptr,i_f,o_f,pseudo_pointer):
     if field_ptr[3].text == '0':
-        notes_set.discard(field_ptr[0].text)
+        if o_f=="XML":
+            link_notes_set.discard(pseudo_pointer[0].text)
+            standard_notes_set.discard(pseudo_pointer[0].text)
+            extended_notes_set.discard(pseudo_pointer[0].text)
+        else:
+            link_notes_set.discard(field_ptr[0].text)
+            standard_notes_set.discard(field_ptr[0].text)
+            extended_notes_set.discard(field_ptr[0].text)
         return
 
     f.write("field name")
@@ -2296,6 +2307,12 @@ def output_field_note_combine(field_ptr,i_f,o_f):
     print(list_from_dict)
     print("DS")
     if list_from_dict[0]:
+        if o_f=="XML":
+            link_notes_set.discard(pseudo_pointer[0].text)
+            standard_notes_set.discard(pseudo_pointer[0].text)
+        else:
+            standard_notes_set.discard(field_ptr[0].text)
+            link_notes_set.discard(field_ptr[0].text)
         if list_from_dict[3]:
             note=''
             note=check_for_note(list_from_dict,0)
@@ -2304,7 +2321,10 @@ def output_field_note_combine(field_ptr,i_f,o_f):
             print(note)
             # exit()
             field_ptr[5].text=note
-            notes_set.discard(field_ptr[0].text)
+            if o_f=="XML":
+                extended_notes_set.discard(pseudo_pointer[0].text)
+            else:
+                extended_notes_set.discard(field_ptr[0].text)
             f.write("************" + '\n')
             f.write(note)
             f.write('\n')
@@ -2312,25 +2332,32 @@ def output_field_note_combine(field_ptr,i_f,o_f):
         else:
             note=list_from_dict[0]
             field_ptr[5].text=note
-            notes_set.discard(field_ptr[0].text)
             f.write("************" + '\n')
             f.write(note)
             f.write('\n')
         return
 
     if list_from_dict[4]:
+        if o_f=="XML":
+            link_notes_set.discard(pseudo_pointer[0].text)
+            standard_notes_set.discard(pseudo_pointer[0].text)
+        else:
+            standard_notes_set.discard(field_ptr[0].text)
+            link_notes_set.discard(field_ptr[0].text)
         if list_from_dict[3]:
             note=''
             note=check_for_note(list_from_dict,4)
             field_ptr[5].text=note
-            notes_set.discard(field_ptr[0].text)
+            if o_f=="XML":
+                extended_notes_set.discard(pseudo_pointer[0].text)
+            else:
+                extended_notes_set.discard(field_ptr[0].text)
             f.write("************" + '\n')
             f.write(note)
             f.write('\n')
         else:
             note=list_from_dict[4]
             field_ptr[5].text=note
-            notes_set.discard(field_ptr[0].text)
             print("IS IT PRINTING>>>>>>>>>>>>>>>>>>>>>>IS IT >>>>>>>>>>>>>>>IS IT")
             f.write("************" + '\n')
             f.write(note)
@@ -2338,19 +2365,27 @@ def output_field_note_combine(field_ptr,i_f,o_f):
         return
 
     if list_from_dict[5]:
+        if o_f=="XML":
+            link_notes_set.discard(pseudo_pointer[0].text)
+            standard_notes_set.discard(pseudo_pointer[0].text)
+        else:
+            standard_notes_set.discard(field_ptr[0].text)
+            link_notes_set.discard(field_ptr[0].text)
         if list_from_dict[3]:
             note=''
             note=check_for_note(list_from_dict,5)
             note = change_format(note, i_f, o_f)
             field_ptr[5].text=note
-            notes_set.discard(field_ptr[0].text)
+            if o_f=="XML":
+                extended_notes_set.discard(pseudo_pointer[0].text)
+            else:
+                extended_notes_set.discard(field_ptr[0].text)
             f.write("************" + '\n')
             f.write(note)
             f.write('\n')
         else:
             note=list_from_dict[5]
             field_ptr[5].text=note
-            notes_set.discard(field_ptr[0].text)
             print("IS IT PRINTING>>>>>>>>>>>>>>>>>>>>>>IS IT >>>>>>>>>>>>>>>IS IT")
             f.write("************" + '\n')
             f.write(note)
@@ -2358,6 +2393,12 @@ def output_field_note_combine(field_ptr,i_f,o_f):
         return
 
     if list_from_dict[1]:
+        if o_f=="XML":
+            link_notes_set.discard(pseudo_pointer[0].text)
+            standard_notes_set.discard(pseudo_pointer[0].text)
+        else:
+            standard_notes_set.discard(field_ptr[0].text)
+            link_notes_set.discard(field_ptr[0].text)
         note=list_from_dict[1]
         split_list = note.split()
         end_ptr = len(split_list) - 1
@@ -2383,21 +2424,31 @@ def output_field_note_combine(field_ptr,i_f,o_f):
 
         if list_from_dict[3]:
             note=check_for_note(list_from_dict,1)
+            if o_f=="XML":
+                extended_notes_set.discard(pseudo_pointer[0].text)
+            else:
+                extended_notes_set.discard(field_ptr[0].text)
         note = change_format(note, i_f, o_f)
         field_ptr[5].text = note
-        notes_set.discard(field_ptr[0].text)
         f.write("************" + '\n')
         f.write(note)
         f.write('\n')
         return
 
     if list_from_dict[2]:
+        if o_f=="XML":
+            link_notes_set.discard(pseudo_pointer[0].text)
+        else:
+            link_notes_set.discard(field_ptr[0].text)
         if list_from_dict[3]:
             note=''
             note=check_for_note(list_from_dict,2)
             note = change_format(note, i_f, o_f)
             field_ptr[5].text=note
-            notes_set.discard(field_ptr[0].text)
+            if o_f=="XML":
+                extended_notes_set.discard(pseudo_pointer[0].text)
+            else:
+                extended_notes_set.discard(field_ptr[0].text)
             f.write("************"+'\n')
             f.write(note)
             f.write('\n')
@@ -2405,7 +2456,6 @@ def output_field_note_combine(field_ptr,i_f,o_f):
             note=list_from_dict[2]
             note = change_format(note, i_f, o_f)
             field_ptr[5].text=note
-            notes_set.discard(field_ptr[0].text)
             f.write("************" + '\n')
             f.write(note)
             f.write('\n')
@@ -2421,7 +2471,10 @@ def output_field_note_combine(field_ptr,i_f,o_f):
         # exit()
         # print(note)
         field_ptr[5].text = note
-        notes_set.discard(field_ptr[0].text)
+        if o_f == "XML":
+            extended_notes_set.discard(pseudo_pointer[0].text)
+        else:
+            extended_notes_set.discard(field_ptr[0].text)
         # print("g")
         # print(note)
         # print("F")
@@ -2436,7 +2489,7 @@ def output_seg_note_combine(seg_ptr,inp_format,out_format):
         if children.tag.split('}')[1]=="Composite":
             output_seg_note_combine(children,inp_format,out_format)
         elif children.tag.split('}')[1] == "Field":
-            output_field_note_combine(children,inp_format,out_format)
+            output_field_note_combine(children,inp_format,out_format,'')
 
 def output_group_note_combine(group_ptr,inp_format,out_format):
     for children in group_ptr:
@@ -2452,7 +2505,7 @@ def xml_output_rec_note_combine(rec_ptr,i_f,o_f,group_ptr):
     # print("rec")
     for children in rec_ptr:
         if children.tag.split('}')[1]=="Field":
-            output_field_note_combine(group_ptr,i_f,o_f)
+            output_field_note_combine(group_ptr,i_f,o_f,children)
 
 
 def xml_output_particle_note_combine(particle_ptr,i_f,o_f):
@@ -2460,6 +2513,8 @@ def xml_output_particle_note_combine(particle_ptr,i_f,o_f):
     for children in particle_ptr:
         if children.tag.split('}')[1]=="XMLElementGroup":
             xml_output_group_note_combine(children,i_f,o_f)
+        if children.tag.split('}')[1]=="XMLParticleGroup":
+            xml_output_particle_note_combine(children,i_f,o_f)
 
 def xml_output_group_note_combine(group_ptr,i_f,o_f):
     # print("grouop")
@@ -2504,3 +2559,23 @@ def write_func(data_root,etree,raw_data,answer):
     etree.register_namespace("", "http://www.stercomm.com/SI/Map")
     raw_data.write(output_file, encoding='utf-8', xml_declaration=True)
     f.close()
+
+def make_log(lf):
+    for item in link_notes_set:
+        field_list=dict[item]
+        field=field_list[1]+'/'+field_list[2]
+        note="Field "+field+" having link, not populated"
+        lf.write(note)
+        lf.write('\n')
+    for item in standard_notes_set:
+        field_list=dict[item]
+        field=field_list[1]+'/'+field_list[2]
+        note="Field "+field+" having standard rule, not populated"
+        lf.write(note)
+        lf.write('\n')
+    for item in extended_notes_set:
+        field_list=dict[item]
+        field=field_list[1]+'/'+field_list[2]
+        note="Field "+field+" having extended rule, not populated"
+        lf.write(note)
+        lf.write('\n')

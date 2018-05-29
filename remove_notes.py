@@ -61,11 +61,9 @@ def output_group(group_ptr):
 
 
 def empty_notes(data_root,etree,raw_data,dst):
-    print("S")
-    print(dst)
     out_list=dst.split('/')
+    output_file=out_list[len(out_list)-1]
     output_file="others/"+ out_list[len(out_list)-1]
-
     for child in data_root[4][0]:
         if child.tag.split('}')[1]=="XMLElementGroup":
             xml_output_group_func(child)
