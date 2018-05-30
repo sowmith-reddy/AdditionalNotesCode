@@ -30,7 +30,7 @@ cwd=cwd.replace('\\','/')+'/'+'others'
 if not os.path.exists(cwd):
     os.makedirs(cwd)
 answer=''
-from surbi_func import *
+from may23_func import *
 
 # print(cwd)
 # exit()
@@ -65,7 +65,7 @@ output_format=''
 inp_format_tag=data_root[3][0].tag
 out_format_tag=data_root[4][0].tag
 
-from surbi_remove_notes import *
+from remove_notes import *
 empty_notes(data_root,etree,raw_data,dst)
 
 
