@@ -1,0 +1,539 @@
+<?xml version='1.0' encoding='utf-8'?>
+<Mapper xmlns="http://www.stercomm.com/SI/Map" VERSION="1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+<MapDetails>
+<VersionControl>
+<SerializationVersion>33056</SerializationVersion>
+<MajorVersion>0</MajorVersion>
+<MinorVersion>0</MinorVersion>
+<CompiledDate>503646178</CompiledDate>
+</VersionControl>
+<Summary>
+<Author>pvssnraju</Author>
+<Description>dummy</Description>
+<MapFunction>24</MapFunction>
+</Summary>
+<Flags>
+<SystemTemplate>0</SystemTemplate>
+<UseBigDecimal>0</UseBigDecimal>
+<InitializeExtendedRuleVariables>0</InitializeExtendedRuleVariables>
+<ErrorForNotUsed>0</ErrorForNotUsed>
+<SuspendGroupProcessing>0</SuspendGroupProcessing>
+<SWIFTValidation />
+<UseConfigurableTrimming>0</UseConfigurableTrimming>
+<CompatibleRuleExecution>1</CompatibleRuleExecution>
+<KeepTrailingZeroes>0</KeepTrailingZeroes>
+</Flags>
+<EDIAssociations_IN>
+<AgencyID />
+<VersionID />
+<BindingID />
+<FunctionGroupID />
+<AgencyDescription />
+<VersionDescription />
+<BindingDescription />
+<FunctionalGroupDescription />
+<Release>65535</Release>
+</EDIAssociations_IN>
+<EDIAssociations_OUT>
+<AgencyID />
+<VersionID />
+<BindingID />
+<FunctionGroupID />
+<AgencyDescription />
+<VersionDescription />
+<BindingDescription />
+<FunctionalGroupDescription />
+<Release>65535</Release>
+</EDIAssociations_OUT>
+<ExplicitRule>
+<PreSessionRule>//CREATED ON 23-11-2017 BY PRASAD K</PreSessionRule>
+<PostSessionRule />
+</ExplicitRule>
+</MapDetails>
+<TemplateOption>2</TemplateOption>
+<ExtendedRuleLibraries />
+<INPUT>
+<EDISyntax>
+<TagDelimiterUsed>no</TagDelimiterUsed>
+<TagDelimiter /><SegmentDelimiterUsed>no</SegmentDelimiterUsed>
+<SegmentDelimiter /><ElementDelimiterUsed>no</ElementDelimiterUsed>
+<ElementDelimiter /><RepeatingElementDelimiterUsed>no</RepeatingElementDelimiterUsed>
+<RepeatingElementDelimiter /><SubElementDelimiterUsed>no</SubElementDelimiterUsed>
+<SubElementDelimiter /><ReleaseCharacterUsed>no</ReleaseCharacterUsed>
+<ReleaseCharacter /><DecimalSeparatorUsed>no</DecimalSeparatorUsed>
+<DecimalSeparator /><SyntaxRecordUsed>no</SyntaxRecordUsed>
+<StreamData>0</StreamData>
+<CharacterEncoding />
+<HIPPADecimal>0</HIPPADecimal>
+<DefaultPadSup>1</DefaultPadSup>
+<PadZero>0</PadZero>
+<RepeatSuppressionCharUsed>no</RepeatSuppressionCharUsed>
+<RepeatSuppressionChar /><AlwaysOutputDelimiters>no</AlwaysOutputDelimiters>
+<EOFTerminatesLastSegment>no</EOFTerminatesLastSegment>
+<FixedLengthElementsNotDelimited>no</FixedLengthElementsNotDelimited>
+<DelimiterTerminatesCurrentElement>no</DelimiterTerminatesCurrentElement>
+<Group>
+<ID>8</ID>
+<Name>INPUT</Name>
+<Description />
+<Active>1</Active>
+<ChildCount>2</ChildCount>
+<Note />
+<Min>1</Min>
+<Max>1</Max>
+<PromoteGroup>no</PromoteGroup>
+<GroupChoiceType>0</GroupChoiceType>
+<OrderingType>0</OrderingType>
+<OrderingTag />
+<UsageRelatedFieldName /><ExplicitRule>
+<OnBegin>string[8000] buffer;
+string[4] match,match2,match3,match4;
+string[3] flag,flag2,VAR_UNZ,VAR_LEN;
+integer match_len,cnt_UTH,i;
+string [256] VAR_RIGHT,VAR_LEFT,VAR_MID,VAR_COUNT,VAR_DELIMITER;
+string [256] VAR_PROCESSFLAG,VAR_PROCESSFLAG_VALUE;
+
+VAR_RIGHT="";
+VAR_MID="";
+VAR_LEFT="";
+VAR_DELIMITER="";
+VAR_COUNT="";
+
+flag = "N";
+flag2="N";
+cnt_UTH=0;
+VAR_UNZ="";
+VAR_LEN="";
+match4="";
+i=0;
+
+// set these next two variables as desired
+match = "UNH";
+match2 = "UNT";
+match3 = "UNZ"; // the tag of the first record in the document
+match4 = "UNB";
+match_len = 3; // the length of the tag
+
+//readblock(buffer);
+//writeblock(buffer);
+
+// keep reading and writing records until the end of the document
+while readblock(buffer) do
+begin
+if left(buffer,match_len) = match then
+begin
+IF flag = "N"  THEN
+BEGIN
+writeblock(buffer);
+flag="Y";
+cnt_UTH=cnt_UTH+1;
+END
+ELSE
+BEGIN
+flag="N";
+END
+end
+else if left(buffer,match_len) = match2  then
+begin
+IF flag2 = "N"  THEN
+BEGIN
+writeblock(buffer);
+flag2="Y";
+END
+END
+else if left(buffer,match_len) = match3  then
+begin
+VAR_LEFT = left(buffer,4);
+VAR_DELIMITER = mid(buffer,3,1);
+VAR_MID = mid(buffer,4,len(buffer));
+VAR_RIGHT = mid(VAR_MID,strstr(VAR_MID,VAR_DELIMITER),len(VAR_MID));
+NTOA(cnt_UTH,VAR_COUNT);
+buffer = VAR_LEFT +VAR_COUNT+VAR_RIGHT;
+writeblock(buffer);
+cnt_UTH=0;
+end
+else if left(buffer,match_len) = match4  then
+BEGIN
+VAR_PROCESSFLAG_VALUE=buffer;
+WHILE i &lt; 6 do
+BEGIN
+i=i+1;
+VAR_PROCESSFLAG_VALUE = mid(VAR_PROCESSFLAG_VALUE,strstr(VAR_PROCESSFLAG_VALUE,"+")+1,len(VAR_PROCESSFLAG_VALUE));
+messagebox(VAR_PROCESSFLAG_VALUE,100);
+IF (i = 5) THEN
+BEGIN
+VAR_PROCESSFLAG = mid(VAR_PROCESSFLAG_VALUE,0,strstr(VAR_PROCESSFLAG_VALUE,"+"));
+update processdata set xpathresult = VAR_PROCESSFLAG where xpath = "TranslationOutput/ProcessingFlag1";
+END
+END
+END
+else
+BEGIN
+flag="N";
+flag2="N";
+writeblock(buffer);
+END
+end</OnBegin>
+<OnEnd />
+</ExplicitRule>
+<Segment>
+<ID>7</ID>
+<Name>H</Name>
+<Description />
+<Active>1</Active>
+<ChildCount>1</ChildCount>
+<Note />
+<Min>0</Min>
+<Max>100</Max>
+<LoopCtl>normal</LoopCtl>
+<OrderingType>0</OrderingType>
+<OrderingTag />
+<UsageRelatedFieldName /><BlockSig>
+<Tag>1213</Tag>
+<TagPos>0</TagPos>
+<KeyFieldID>0</KeyFieldID>
+<KeyFieldData>65535</KeyFieldData>
+<KeyFieldAction>65535</KeyFieldAction>
+<Tag />
+<TagPos>0</TagPos>
+<KeyFieldID>0</KeyFieldID>
+<KeyFieldData>0</KeyFieldData>
+<KeyFieldAction>0</KeyFieldAction>
+</BlockSig>
+<WildCard>no</WildCard>
+<Binary>no</Binary>
+<Float>no</Float>
+<Field>
+<ID>6</ID>
+<Name>data</Name>
+<Description />
+<Active>1</Active>
+<ChildCount>0</ChildCount>
+<Note />
+<Mandatory>no</Mandatory>
+<NotUsed>no</NotUsed>
+<FieldNumber>0</FieldNumber>
+<StoreGroup>65535</StoreGroup>
+<StoreField>65535</StoreField>
+<BusinessName />
+<StoreLimit>
+<MaxLen>1000000</MaxLen>
+<MinLen>0</MinLen>
+<Signed>no</Signed>
+<DataType>string</DataType>
+<ImpliedDecimalPos>0</ImpliedDecimalPos>
+<ImplicitDecimal>no</ImplicitDecimal>
+<AllowSignedDecimal>0</AllowSignedDecimal>
+<Format>X</Format>
+<BinaryOutput>0</BinaryOutput>
+<BinaryWidth>0</BinaryWidth>
+</StoreLimit>
+<ExplicitRule>$TEMP_H2[1].#TEMP_data="123";</ExplicitRule>
+<ImplicitRuleDef>
+<UseConstant>
+<ConstantID>0</ConstantID>
+<ConditionalFieldID>-1</ConditionalFieldID>
+</UseConstant>
+</ImplicitRuleDef>
+<Element>0</Element>
+<ElementOpt>0</ElementOpt>
+<SubElement>0</SubElement>
+<SubElementOpt>0</SubElementOpt>
+<MinUsage>0</MinUsage>
+<MaxUsage>1</MaxUsage>
+<Binary>0</Binary>
+<TreatAsRepeat>no</TreatAsRepeat>
+<AlwaysOutputDelimiter>no</AlwaysOutputDelimiter>
+</Field>
+</Segment>
+<Segment>
+<ID>5</ID>
+<Name>TEMP_H2</Name>
+<Description />
+<Active>1</Active>
+<ChildCount>1</ChildCount>
+<Note />
+<Min>0</Min>
+<Max>100</Max>
+<LoopCtl>normal</LoopCtl>
+<OrderingType>0</OrderingType>
+<OrderingTag />
+<UsageRelatedFieldName /><BlockSig>
+<Tag>$$$</Tag>
+<TagPos>0</TagPos>
+<KeyFieldID>0</KeyFieldID>
+<KeyFieldData>65535</KeyFieldData>
+<KeyFieldAction>65535</KeyFieldAction>
+<Tag />
+<TagPos>0</TagPos>
+<KeyFieldID>0</KeyFieldID>
+<KeyFieldData>0</KeyFieldData>
+<KeyFieldAction>0</KeyFieldAction>
+</BlockSig>
+<WildCard>no</WildCard>
+<Binary>no</Binary>
+<Float>no</Float>
+<Field>
+<ID>4</ID>
+<Name>TEMP_data</Name>
+<Description />
+<Active>1</Active>
+<ChildCount>0</ChildCount>
+<Note />
+<Mandatory>no</Mandatory>
+<NotUsed>no</NotUsed>
+<FieldNumber>0</FieldNumber>
+<StoreGroup>65535</StoreGroup>
+<StoreField>65535</StoreField>
+<BusinessName />
+<StoreLimit>
+<MaxLen>1</MaxLen>
+<MinLen>0</MinLen>
+<Signed>no</Signed>
+<DataType>string</DataType>
+<ImpliedDecimalPos>0</ImpliedDecimalPos>
+<ImplicitDecimal>no</ImplicitDecimal>
+<AllowSignedDecimal>0</AllowSignedDecimal>
+<Format>X</Format>
+<BinaryOutput>0</BinaryOutput>
+<BinaryWidth>0</BinaryWidth>
+</StoreLimit>
+<Element>0</Element>
+<ElementOpt>0</ElementOpt>
+<SubElement>0</SubElement>
+<SubElementOpt>0</SubElementOpt>
+<MinUsage>0</MinUsage>
+<MaxUsage>1</MaxUsage>
+<Binary>0</Binary>
+<TreatAsRepeat>no</TreatAsRepeat>
+<AlwaysOutputDelimiter>no</AlwaysOutputDelimiter>
+</Field></Segment></Group></EDISyntax></INPUT><OUTPUT>
+<EDISyntax>
+<TagDelimiterUsed>no</TagDelimiterUsed>
+<TagDelimiter /><SegmentDelimiterUsed>no</SegmentDelimiterUsed>
+<SegmentDelimiter /><ElementDelimiterUsed>no</ElementDelimiterUsed>
+<ElementDelimiter /><RepeatingElementDelimiterUsed>no</RepeatingElementDelimiterUsed>
+<RepeatingElementDelimiter /><SubElementDelimiterUsed>no</SubElementDelimiterUsed>
+<SubElementDelimiter /><ReleaseCharacterUsed>no</ReleaseCharacterUsed>
+<ReleaseCharacter /><DecimalSeparatorUsed>no</DecimalSeparatorUsed>
+<DecimalSeparator /><SyntaxRecordUsed>no</SyntaxRecordUsed>
+<StreamData>1</StreamData>
+<CharacterEncoding />
+<HIPPADecimal>0</HIPPADecimal>
+<DefaultPadSup>1</DefaultPadSup>
+<PadZero>0</PadZero>
+<RepeatSuppressionCharUsed>no</RepeatSuppressionCharUsed>
+<RepeatSuppressionChar /><AlwaysOutputDelimiters>no</AlwaysOutputDelimiters>
+<EOFTerminatesLastSegment>no</EOFTerminatesLastSegment>
+<FixedLengthElementsNotDelimited>no</FixedLengthElementsNotDelimited>
+<DelimiterTerminatesCurrentElement>no</DelimiterTerminatesCurrentElement>
+<Group>
+<ID>3</ID>
+<Name>OUTPUT</Name>
+<Description />
+<Active>1</Active>
+<ChildCount>1</ChildCount>
+<Note />
+<Min>1</Min>
+<Max>1</Max>
+<PromoteGroup>no</PromoteGroup>
+<GroupChoiceType>0</GroupChoiceType>
+<OrderingType>0</OrderingType>
+<OrderingTag />
+<UsageRelatedFieldName /><Segment>
+<ID>2</ID>
+<Name>Output</Name>
+<Description />
+<Active>1</Active>
+<ChildCount>1</ChildCount>
+<Note />
+<Min>0</Min>
+<Max>100</Max>
+<LoopCtl>normal</LoopCtl>
+<OrderingType>0</OrderingType>
+<OrderingTag />
+<UsageRelatedFieldName /><BlockSig>
+<Tag>RECORD1</Tag>
+<TagPos>0</TagPos>
+<KeyFieldID>0</KeyFieldID>
+<KeyFieldData>0</KeyFieldData>
+<KeyFieldAction>65535</KeyFieldAction>
+<Tag />
+<TagPos>0</TagPos>
+<KeyFieldID>0</KeyFieldID>
+<KeyFieldData>0</KeyFieldData>
+<KeyFieldAction>0</KeyFieldAction>
+</BlockSig>
+<WildCard>no</WildCard>
+<Binary>no</Binary>
+<Float>no</Float>
+<Field>
+<ID>1</ID>
+<Name>data</Name>
+<Description />
+<Active>1</Active>
+<ChildCount>0</ChildCount>
+<Note />
+<Mandatory>no</Mandatory>
+<NotUsed>no</NotUsed>
+<FieldNumber>0</FieldNumber>
+<StoreGroup>65535</StoreGroup>
+<StoreField>65535</StoreField>
+<BusinessName />
+<StoreLimit>
+<MaxLen>16960</MaxLen>
+<MinLen>0</MinLen>
+<Signed>no</Signed>
+<DataType>string</DataType>
+<ImpliedDecimalPos>0</ImpliedDecimalPos>
+<ImplicitDecimal>no</ImplicitDecimal>
+<AllowSignedDecimal>0</AllowSignedDecimal>
+<Format>X</Format>
+<BinaryOutput>0</BinaryOutput>
+<BinaryWidth>0</BinaryWidth>
+</StoreLimit>
+<Link>4</Link>
+<ExplicitRule>IF strstr(#data,"12")=-1 THEN
+BEGIN
+#data= "124";
+END</ExplicitRule>
+<Element>0</Element>
+<ElementOpt>0</ElementOpt>
+<SubElement>0</SubElement>
+<SubElementOpt>0</SubElementOpt>
+<MinUsage>0</MinUsage>
+<MaxUsage>1</MaxUsage>
+<Binary>0</Binary>
+<TreatAsRepeat>no</TreatAsRepeat>
+<AlwaysOutputDelimiter>no</AlwaysOutputDelimiter>
+</Field></Segment></Group></EDISyntax>
+</OUTPUT>
+<SyntaxTokens>
+<Token>
+<Code>A</Code>
+<Range>
+<Start>Z</Start>
+<End>A</End>
+</Range>
+<Range>
+<Start>z</Start>
+<End>a</End>
+</Range>
+<Char>SP</Char>
+</Token>
+<Token>
+<Code>N</Code>
+<Range>
+<Start>9</Start>
+<End>0</End>
+</Range>
+<Char>.</Char>
+<Char>-</Char>
+<Char>+</Char>
+</Token>
+<Token>
+<Code>X</Code>
+<Range>
+<Start>Z</Start>
+<End>A</End>
+</Range>
+<Range>
+<Start>z</Start>
+<End>a</End>
+</Range>
+<Range>
+<Start>9</Start>
+<End>0</End>
+</Range>
+<Char>.</Char>
+<Char>-</Char>
+<Char>+</Char>
+<Char>SP</Char>
+<Char>(</Char>
+<Char>)</Char>
+<Char>:</Char>
+<Char>/</Char>
+<Char>%</Char>
+<Char>\</Char>
+<Char>!</Char>
+<Char>"</Char>
+<Char>$</Char>
+<Char>^</Char>
+<Char>&amp;</Char>
+<Char>*</Char>
+<Char>_</Char>
+<Char>=</Char>
+<Char>[</Char>
+<Char>]</Char>
+<Char>{</Char>
+<Char>}</Char>
+<Char>;</Char>
+<Char>'</Char>
+<Char>?</Char>
+<Char>,</Char>
+<Char>&lt;</Char>
+<Char>&gt;</Char>
+<Char>~</Char>
+<Char>#</Char>
+<Char>|</Char>
+<Char>@</Char>
+<Char>`</Char>
+</Token>
+<Token>
+<Code>J</Code>
+<Range>
+<Start>Z</Start>
+<End>A</End>
+</Range>
+<Range>
+<Start>z</Start>
+<End>a</End>
+</Range>
+<Range>
+<Start>9</Start>
+<End>0</End>
+</Range>
+<Range>
+<Start>/</Start>
+<End>!</End>
+</Range>
+<Range>
+<Start>@</Start>
+<End>:</End>
+</Range>
+<Range>
+<Start>`</Start>
+<End>[</End>
+</Range>
+<Range>
+<Start>~</Start>
+<End>{</End>
+</Range>
+<Range>
+<Start>0xDF</Start>
+<End>0xA1</End>
+</Range>
+<Char>SP</Char>
+</Token>
+</SyntaxTokens>
+<CodeListTables>
+<Table>
+<TableID>data</TableID>
+<TableDescription />
+<Entry>
+<Value>1</Value>
+<Description>12</Description>
+</Entry></Table>
+</CodeListTables>
+<ConstantMap xml:space="preserve">
+<Constant>
+<ConstantID>1</ConstantID>
+<Type>String</Type>
+<Value>1</Value>
+</Constant>
+</ConstantMap>
+<Accumulators>
+<Accumulator>
+<AccumulatorID>0</AccumulatorID>
+<AccumulatorName>Accum</AccumulatorName>
+</Accumulator></Accumulators></Mapper>

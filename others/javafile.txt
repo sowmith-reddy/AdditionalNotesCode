@@ -1,307 +1,80 @@
-integer cnt_N1_ST,cnt_N1_DU,cnt_N1_EU,cnt_PO1,cnt_KT2,cnt_KT1;
-string[100] vREF02_PO,vREF02_RA,vREV_NO;
-cnt_KT2 = 0;
-cnt_KT1 = 0;
-vREV_NO = "";
-cnt_PO1 = 0;
-cnt_N1_EU = 0;
-vREF02_PO = "";
-vREF02_RA = "";
-cnt_N1_ST = 0;
-cnt_N1_DU = 0;
-integer var_FirstOne,var_SecondInt;
-var_FirstOne = 20;
-var_SecondInt = 10;
-$850.#TEMP_ArithmeticOperation_Check_Multiplication = var_FirstOne * atoi(#0353);
-$850.#TEMP_ArithmeticOperation_Check_Division = var_FirstOne/atoi(#0353);
-$850.#TEMP_ArithmeticOperation_Check_Combination = var_FirstOne*atoi(#0353)*var_SecondInt/100;
-If #0128 = "PO" then
-   vREF02_PO = #0127;
-If #0128 = "RA" then
-   vREF02_RA = #0127;
-If #0128 = "BN" then
-   vREV_NO = #0127;
-If #0128 = "VN" | #0128 = "IA" then
-   update processdata set xpathresult = #0127 where xpath = "TranslationOutput/ExtraInfo2";
-IF #0146 = "PP" then
-Begin
-   $850.#TEMP_FOB01 = "001";
-   $850.#TEMP_LKOND = "3";
-End
-IF #0146 = "PC" then
-Begin
-   $850.#TEMP_LKOND = "2";
-End
-IF #0146 = "CC" then
-Begin
-   $850.#TEMP_LKOND = "1";
-End
-string[100] vDTM02;
- vDTM02 = "";
-If #0374:13 = "001" & !exist($850.#TEMP_DTM02)then
-   $850.#TEMP_DTM02 = #0373:15;
-If #0374:13 = "002" & !exist($850.#TEMP_DTM02)then
-   $850.#TEMP_DTM02 = #0373:15;
-If #0374:13 = "010" & !exist($850.#TEMP_DTM02)then
-   $850.#TEMP_DTM02 = #0373:15;
-If exist(#0373:15) then
-Begin
-   cnt_KT2 = 0;
-   cnt_KT1 = cnt_KT1 + 1;
-   $TEMP_E2EDKT1_GRP[cnt_KT1].#TEMP_TDID:2 = "ZORD";
-   cnt_KT2 = cnt_KT2 + 1;
-   Select Text1 into vDTM02 from CODELIST where sendercode = #0374:13 and name = "PANA_DTM01_HIQUALTXT";
-   $TEMP_E2EDKT2[cnt_KT1][cnt_KT2].#TEMP_TDLINE_KT2 = vDTM02 + " " +  mid(#0373:15,4,2) + "/" + mid(#0373:15,6,2) +"/" +  mid(#0373:15,2,2);
-End
-If exist(#0127:10) then
-Begin
-   cnt_KT2 = 0;
-   cnt_KT1 = cnt_KT1 + 1;
-   $TEMP_E2EDKT1_GRP[cnt_KT1].#TEMP_TDID:2 = "ZORD";
-   cnt_KT2 = cnt_KT2 + 1;
-   $TEMP_E2EDKT2[cnt_KT1][cnt_KT2].#TEMP_TDLINE_KT2 = #0127:10;
-End
-If exist(#0933) then
-Begin
-   cnt_KT2 = 0;
-   cnt_KT1 = cnt_KT1 + 1;
-   $TEMP_E2EDKT1_GRP[cnt_KT1].#TEMP_TDID:2 = "0016";
-   If left(#0933,70) != "" then
-   Begin
-     cnt_KT2 = cnt_KT2 + 1;
-     $TEMP_E2EDKT2[cnt_KT1][cnt_KT2].#TEMP_TDLINE_KT2 = left(#0933,70);
-   End
-   If mid(#0933,70,70) != "" then
-   Begin
-     cnt_KT2 = cnt_KT2 + 1;
-     $TEMP_E2EDKT2[cnt_KT1][cnt_KT2].#TEMP_TDLINE_KT2 = mid(#0933,70,70);
-   End
-   If mid(#0933,140,70) != "" then
-   Begin
-     cnt_KT2 = cnt_KT2 + 1;
-     $TEMP_E2EDKT2[cnt_KT1][cnt_KT2].#TEMP_TDLINE_KT2 = mid(#0933,140,70);
-   End
-   If mid(#0933,210,70) != "" then
-   Begin
-     cnt_KT2 = cnt_KT2 + 1;
-     $TEMP_E2EDKT2[cnt_KT1][cnt_KT2].#TEMP_TDLINE_KT2 = mid(#0933,210,70);
-   End
-End
-If #0098:6 = "ST" | #0098:6 = "BS" then
-   $850.#TEMP_N102_WE = #0093:2;
-If #0098:6 = "ST" then
-   $850.#TEMP_N1_ST = "Y";
-If #0098:6 = "DU" then
-   $850.#TEMP_N1_DU = "Y";
-If #0098:6 = "EU" then
-   $850.#TEMP_N1_EU = "Y";
-If #0098:6 = "ST" then
-Begin
-   cnt_N1_ST = cnt_N1_ST + 1;
-   $TEMP_E2EDKT1_ST[cnt_N1_ST].#TEMP_TDLINE = "NAM#" + #0093:2;
-End
-If #0098:6 = "DU" then
-Begin
-   if vREF02_PO != "" then
-   Begin
-   cnt_N1_DU = cnt_N1_DU + 1;
-   $TEMP_E2EDKT1_DU[cnt_N1_DU].#TEMP_TDLINE:2 = "PO#" + vREF02_PO;
-   ENd
-   if vREF02_RA != "" then
-   Begin
-   cnt_N1_DU = cnt_N1_DU + 1;
-   $TEMP_E2EDKT1_DU[cnt_N1_DU].#TEMP_TDLINE:2 = "AUTH#" + vREF02_RA;
-   End
-   cnt_N1_DU = cnt_N1_DU + 1;
-   $TEMP_E2EDKT1_DU[cnt_N1_DU].#TEMP_TDLINE:2 = "NAM#" + #0093:2;
-End
-If #0098:6 = "EU" then
-Begin
-   cnt_N1_EU = cnt_N1_EU + 1;
-   $TEMP_E2EDKT1_EU[cnt_N1_EU].#TEMP_TDLINE:3 = "NAM#" + #0093:2;
-End
-If $4000_N1.#0098:6 = "ST" then
-Begin
-   $850.#TEMP_N301_WE = #0166;
-   $850.#TEMP_N302_WE = #0166:2;
-End
-If $4000_N1.#0098:6 = "ST" & exist(#0166) then
-Begin
-   cnt_N1_ST = cnt_N1_ST + 1;
-   $TEMP_E2EDKT1_ST[cnt_N1_ST].#TEMP_TDLINE = "AD1#" + #0166;
-End
-If $4000_N1.#0098:6 = "ST" & exist(#0166:2) then
-Begin
-   cnt_N1_ST = cnt_N1_ST + 1;
-   $TEMP_E2EDKT1_ST[cnt_N1_ST].#TEMP_TDLINE = "AD2#" + #0166:2;
-End
-If $4000_N1.#0098:6 = "DU" & exist(#0166) then
-Begin
-   cnt_N1_DU = cnt_N1_DU + 1;
-   $TEMP_E2EDKT1_DU[cnt_N1_DU].#TEMP_TDLINE:2 = "AD1#" + #0166;
-End
-If $4000_N1.#0098:6 = "DU" & exist(#0166:2) then
-Begin
-   cnt_N1_DU = cnt_N1_DU + 1;
-   $TEMP_E2EDKT1_DU[cnt_N1_DU].#TEMP_TDLINE:2 = "AD2#" + #0166:2;
-End
-If $4000_N1.#0098:6 = "EU" & exist(#0166) then
-Begin
-   cnt_N1_EU = cnt_N1_EU + 1;
-   $TEMP_E2EDKT1_EU[cnt_N1_EU].#TEMP_TDLINE:3 = "AD1#" + #0166;
-End
-If $4000_N1.#0098:6 = "EU" & exist(#0166:2) then
-Begin
-   cnt_N1_EU = cnt_N1_EU + 1;
-   $TEMP_E2EDKT1_EU[cnt_N1_EU].#TEMP_TDLINE:3 = "AD2#" + #0166:2;
-End
-If $4000_N1.#0098:6 = "ST" then
-Begin
-   $850.#TEMP_N401_WE = #0019;
-   $850.#TEMP_N402_WE = #0156;
-   $850.#TEMP_N403_WE = #0116;
-End
-If $4000_N1.#0098:6 = "ST" & exist(#0019) then
-Begin
-   cnt_N1_ST = cnt_N1_ST + 1;
-   $TEMP_E2EDKT1_ST[cnt_N1_ST].#TEMP_TDLINE = "CIT#" + #0019;
-End
-If $4000_N1.#0098:6 = "ST" & exist(#0156) then
-Begin
-   cnt_N1_ST = cnt_N1_ST + 1;
-   $TEMP_E2EDKT1_ST[cnt_N1_ST].#TEMP_TDLINE = "STA#" + #0156;
-End
-If $4000_N1.#0098:6 = "ST" & exist(#0116) then
-Begin
-   cnt_N1_ST = cnt_N1_ST + 1;
-   $TEMP_E2EDKT1_ST[cnt_N1_ST].#TEMP_TDLINE = "ZIP#" + #0116;
-End
-If $4000_N1.#0098:6 = "DU" & exist(#0019) then
-Begin
-   cnt_N1_DU = cnt_N1_DU + 1;
-   $TEMP_E2EDKT1_DU[cnt_N1_DU].#TEMP_TDLINE:2 = "CIT#" + #0019;
-End
-If $4000_N1.#0098:6 = "DU" & exist(#0156) then
-Begin
-   cnt_N1_DU = cnt_N1_DU + 1;
-   $TEMP_E2EDKT1_DU[cnt_N1_DU].#TEMP_TDLINE:2 = "STA#" + #0156;
-End
-If $4000_N1.#0098:6 = "DU" & exist(#0116) then
-Begin
-   cnt_N1_DU = cnt_N1_DU + 1;
-   $TEMP_E2EDKT1_DU[cnt_N1_DU].#TEMP_TDLINE:2 = "ZIP#" + #0116;
-End
-If $4000_N1.#0098:6 = "EU" & exist(#0019) then
-Begin
-   cnt_N1_EU = cnt_N1_EU + 1;
-   $TEMP_E2EDKT1_EU[cnt_N1_EU].#TEMP_TDLINE:3 = "CIT#" + #0019;
-End
-If $4000_N1.#0098:6 = "EU" & exist(#0156) then
-Begin
-   cnt_N1_EU = cnt_N1_EU + 1;
-   $TEMP_E2EDKT1_EU[cnt_N1_EU].#TEMP_TDLINE:3 = "STA#" + #0156;
-End
-If $4000_N1.#0098:6 = "EU" & exist(#0116) then
-Begin
-   cnt_N1_EU = cnt_N1_EU + 1;
-   $TEMP_E2EDKT1_EU[cnt_N1_EU].#TEMP_TDLINE:3 = "ZIP#" + #0116;
-End
-If $4000_N1.#0098:6 = "DU" & #0366:2 = "IC" & exist(#0093:5) then
-Begin
-   cnt_N1_DU = cnt_N1_DU + 1;
-   $TEMP_E2EDKT1_DU[cnt_N1_DU].#TEMP_TDLINE:2 = "ICN#" + #0093:5;
-End
-If $4000_N1.#0098:6 = "DU" & #0366:2 = "IC" & exist(#0364:5) then
-Begin
-   cnt_N1_DU = cnt_N1_DU + 1;
-   $TEMP_E2EDKT1_DU[cnt_N1_DU].#TEMP_TDLINE:2 = "EML#" + #0364:5;
-End
-If $4000_N1.#0098:6 = "DU" & #0366:2 = "IC" & exist(#0364:4) then
-Begin
-   cnt_N1_DU = cnt_N1_DU + 1;
-   $TEMP_E2EDKT1_DU[cnt_N1_DU].#TEMP_TDLINE:2 = "PHN#" + #0364:4;
-End
-If $4000_N1.#0098:6 = "EU" & #0366:2 = "IC" & exist(#0093:5) then
-Begin
-   cnt_N1_EU = cnt_N1_EU + 1;
-   $TEMP_E2EDKT1_EU[cnt_N1_EU].#TEMP_TDLINE:3 = "ICN#" + #0093:5;
-End
-If $4000_N1.#0098:6 = "EU" & #0365:4 = "EM" & exist(#0364:4) then
-Begin
-   cnt_N1_EU = cnt_N1_EU + 1;
-   $TEMP_E2EDKT1_EU[cnt_N1_EU].#TEMP_TDLINE:3 = "EML#" + #0364:4;
-End
-If $4000_N1.#0098:6 = "EU" & #0365:5 = "EM" & exist(#0364:5) then
-Begin
-   cnt_N1_EU = cnt_N1_EU + 1;
-   $TEMP_E2EDKT1_EU[cnt_N1_EU].#TEMP_TDLINE:3 = "EML#" + #0364:5;
-End
-If $4000_N1.#0098:6 = "EU" & #0365:4 = "TE" & exist(#0364:4) then
-Begin
-   cnt_N1_EU = cnt_N1_EU + 1;
-   $TEMP_E2EDKT1_EU[cnt_N1_EU].#TEMP_TDLINE:3 = "PHN#" + #0364:4;
-End
-If $4000_N1.#0098:6 = "EU" & #0365:5 = "TE" & exist(#0364:5) then
-Begin
-   cnt_N1_EU = cnt_N1_EU + 1;
-   $TEMP_E2EDKT1_EU[cnt_N1_EU].#TEMP_TDLINE:3 = "PHN#" + #0364:5;
-End
-If mid(#1551,70,70) != "" then
-Begin
-   cnt_KT2 = 0;
-   cnt_KT1 = cnt_KT1 + 1;
-   $TEMP_E2EDKT1_GRP[cnt_KT1].#TEMP_TDID:2 = "0016";
-   cnt_KT2 = cnt_KT2 + 1;
-   $TEMP_E2EDKT2[cnt_KT1][cnt_KT2].#TEMP_TDLINE_KT2 = mid(#1551,70,70);
-End
-integer cnt_PT1;
-cnt_PT1 = 0;
-cnt_PO1 = cnt_PO1 + 1;
-If vREV_NO != "" then
-Begin
-   cnt_PT1 = cnt_PT1 + 1;
-   $TEMP_E2EDPT1_GRP[cnt_PO1][cnt_PT1].#TEMP_TDID = "ZZSP";
-   $TEMP_E2EDPT1_GRP[cnt_PO1][cnt_PT1].#TEMP_TDLINE_PT2 = left(vREV_NO,14);
-End
-If vREV_NO != "" then
-Begin
-   cnt_PT1 = cnt_PT1 + 1;
-   $TEMP_E2EDPT1_GRP[cnt_PO1][cnt_PT1].#TEMP_TDID = "ZZSR";
-   $TEMP_E2EDPT1_GRP[cnt_PO1][cnt_PT1].#TEMP_TDLINE_PT2 = mid(vREV_NO,17,3);
-End
-If #0235:16 = "BP" then
-   $8000_PO1[cnt_PO1].#TEMP_PO1_IDTNR_001 = #0234:36;
-If #0235:16 = "VN" then
-   $8000_PO1[cnt_PO1].#TEMP_PO1_IDTNR_002 = #0234:36;
-If #0235:17 = "BP" then
-   $8000_PO1[cnt_PO1].#TEMP_PO1_IDTNR_001 = #0234:37;
-If #0235:17 = "VN" then
-   $8000_PO1[cnt_PO1].#TEMP_PO1_IDTNR_002 = #0234:37;
-If #0128:30 = "MN" & #0127:32 != "" then
-Begin
-   cnt_PT1 = cnt_PT1 + 1;
-   $TEMP_E2EDPT1_GRP[cnt_PO1][cnt_PT1].#TEMP_TDID = "ZORD";
-   $TEMP_E2EDPT1_GRP[cnt_PO1][cnt_PT1].#TEMP_TDLINE_PT2 = "MNR#" + #0127:32;
-End
-If #0128:30 = "SE" & #0127:32 != "" then
-Begin
-   cnt_PT1 = cnt_PT1 + 1;
-   $TEMP_E2EDPT1_GRP[cnt_PO1][cnt_PT1].#TEMP_TDID = "ZORD";
-   $TEMP_E2EDPT1_GRP[cnt_PO1][cnt_PT1].#TEMP_TDLINE_PT2 = "SNR#" + #0127:32;
-End
-If #0128:30 = "6V" & #0127:32 != "" then
-Begin
-   cnt_PT1 = cnt_PT1 + 1;
-   $TEMP_E2EDPT1_GRP[cnt_PO1][cnt_PT1].#TEMP_TDID = "ZOPR";
-   $TEMP_E2EDPT1_GRP[cnt_PO1][cnt_PT1].#TEMP_TDLINE_PT2 =  #0127:32;
-End
-If #0128:30 = "VN" | #0128:30 = "IA" then
-   update processdata set xpathresult = #0127:32 where xpath = "TranslationOutput/ExtraInfo2";
-If #0374:36 = "010" then
-   $8000_PO1[cnt_PO1].#TEMP_DTM02_010 = #0373:44;
-If #0374:37 = "002" then
-Begin
-   cnt_PT1 = cnt_PT1 + 1;
-   $TEMP_E2EDPT1_GRP[cnt_PO1][cnt_PT1].#TEMP_TDID = "ZORD";
-   $TEMP_E2EDPT1_GRP[cnt_PO1][cnt_PT1].#TEMP_TDLINE_PT2 = "Requested Delivery Date - " + #0373:45;
-End
+string[8000] buffer;
+string[4] match,match2,match3,match4;
+string[3] flag,flag2,VAR_UNZ,VAR_LEN;
+integer match_len,cnt_UTH,i;
+string [256] VAR_RIGHT,VAR_LEFT,VAR_MID,VAR_COUNT,VAR_DELIMITER;
+string [256] VAR_PROCESSFLAG,VAR_PROCESSFLAG_VALUE;
+VAR_RIGHT="";
+VAR_MID="";
+VAR_LEFT="";
+VAR_DELIMITER="";
+VAR_COUNT="";
+flag = "N";
+flag2="N";
+cnt_UTH=0;
+VAR_UNZ="";
+VAR_LEN="";
+match4="";
+i=0;
+match = "UNH";
+match2 = "UNT";
+match3 = "UNZ"; 
+match4 = "UNB";
+match_len = 3; 
+while readblock(buffer) do
+begin
+if left(buffer,match_len) = match then
+begin
+IF flag = "N"  THEN
+BEGIN
+writeblock(buffer);
+flag="Y";
+cnt_UTH=cnt_UTH+1;
+END
+ELSE
+BEGIN
+flag="N";
+END
+end
+else if left(buffer,match_len) = match2  then
+begin
+IF flag2 = "N"  THEN
+BEGIN
+writeblock(buffer);
+flag2="Y";
+END
+END
+else if left(buffer,match_len) = match3  then
+begin
+VAR_LEFT = left(buffer,4);
+VAR_DELIMITER = mid(buffer,3,1);
+VAR_MID = mid(buffer,4,len(buffer));
+VAR_RIGHT = mid(VAR_MID,strstr(VAR_MID,VAR_DELIMITER),len(VAR_MID));
+NTOA(cnt_UTH,VAR_COUNT);
+buffer = VAR_LEFT +VAR_COUNT+VAR_RIGHT;
+writeblock(buffer);
+cnt_UTH=0;
+end
+else if left(buffer,match_len) = match4  then
+BEGIN
+VAR_PROCESSFLAG_VALUE=buffer;
+WHILE i < 6 do
+BEGIN
+i=i+1;
+VAR_PROCESSFLAG_VALUE = mid(VAR_PROCESSFLAG_VALUE,strstr(VAR_PROCESSFLAG_VALUE,"+")+1,len(VAR_PROCESSFLAG_VALUE));
+messagebox(VAR_PROCESSFLAG_VALUE,100);
+IF (i = 5) THEN
+BEGIN
+VAR_PROCESSFLAG = mid(VAR_PROCESSFLAG_VALUE,0,strstr(VAR_PROCESSFLAG_VALUE,"+"));
+update processdata set xpathresult = VAR_PROCESSFLAG where xpath = "TranslationOutput/ProcessingFlag1";
+END
+END
+END
+else
+BEGIN
+flag="N";
+flag2="N";
+writeblock(buffer);
+END
+end
+$TEMP_H2[1].#TEMP_data="123";

@@ -1,9 +1,0 @@
-Select Text1 into #D22 from CODELIST where sendercode = trim($850.#0I06) and name = "PANA_ISA06_HISAPACCT";
-update processdata set xpathresult = #D22 where xpath = "TranslationOutput/ExtraInfo1";
-update processdata set xpathresult = #D31 where xpath = "TranslationOutput/ExtraInfo3";
-If #D49 = "04" then
-   #D49 = "004";
-
-If #D49 = "00" then
-   #D49 = "000";
-#D77:2="Kashyap";

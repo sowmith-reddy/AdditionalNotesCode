@@ -349,7 +349,7 @@ def xml_output_group_func(group_ptr,grp_name,field_ct,op_file):
         if children.tag.split('}')[1]=="XMLElementGroup":
             xml_output_group_func(children,group_ptr[1].text,field_ct,op_file)
 
-def output_field(field_ptr,seg_name,field_tag,field_op_ct,op_file,name,ct_loop):
+def output_field(group_name,field_ptr,seg_name,field_tag,field_op_ct,op_file,name,ct_loop):
     # field_ptr[5].text = ''
     temp_id = field_ptr[0].text
     temp_des = field_ptr[2].text
@@ -407,14 +407,46 @@ def output_field(field_ptr,seg_name,field_tag,field_op_ct,op_file,name,ct_loop):
                             acc_note += " increment the value of accumulator " + acc_id + " and " + " use the value of accumulator " + acc_id
                             acc_flag = 1
                         if acc_child.text == 'Use primary' and acc_flag == 0:
-                            acc_note += " use the value of accumulator " + acc_id
+                            if acc_id in dict_sum:
+                                acc_note= "Sum of values in the fields " + ' '.join(dict_sum[acc_id])
+                            else:
+                                acc_note += " Use the value of accumulator " + acc_id
+                        if acc_child.text=='Zero primary':
+                            acc_note+= "Make value of acuumulator " + acc_id + "zero"
+                        if acc_child.text=='Multiply with primary':
+                            acc_note+='Map multiply acuumulator ' + acc_id + " with value of " + field_ptr[1].text
+                        if acc_child.text=='Divide by primary':
+                            acc_note+="Map value of accumulator " +acc_id + " divided by value of " + field_ptr[1].text
+                        if acc_child.text=='Divide primary by field':
+                            acc_note+='Map value of ' + field_ptr[1].text + " divided by value of accumulator " + acc_id
+                        if acc_child.text=='Modulo with primary':
+                            acc_note+='Map remainder of accumulator '+ acc_id + " divided by value of " + field_ptr[1].text
+                        if acc_child.text=='Modulo with field':
+                            acc_note+='Map remainder of '+ field_ptr[1].text + " divided by value of accumulator " + acc_id
+                        if acc_child.text=='Laod Primary':
+                            acc_note+="Load contents of the field " + field_ptr[1].text + " into accumulator " + acc_id
                         if acc_child.text == 'Move primary to alternate':
                             acc_note += ' Move accumulator ' + acc_id + ' value to '
+                        if acc_child.text =='Sum in primary':
+                            l=[field_ptr[1].text]
+                            if acc_id in dict_sum:
+                                dict_sum[acc_id].append(l)
+                            else:
+                                dict[acc_id]=l
                         if acc_child.tag.split('}')[1] == 'AccumulatorAlternate':
                             acc_note += " Accumulator " + acc_child.text
                             print(acc_note)
                         dict_notes[field_ptr[1].text][4] = acc_note
                 standard_notes_set.add(temp_id)
+            loop_note=''
+            if child[0].tag.split('}')[1]=='UseLoopCount':
+                loop_note= "Map number of times " + group_name + " repeats "
+                dict_notes[field_ptr[1].text][0] = loop_note
+                print(loop_note)
+            code_note=''
+            if child[0].tag.split('}')[1]=="UseCode":
+                code_note = "Select codelist value from Table "+ child[0][0].text + " where field value = " +  field_ptr[1].text + " and assign it to field " +  child[0][1].text
+                dict_notes[field_ptr[1].text][1] = code_note
             if child[0].tag.split('}')[1]=='UseSelect':
                 fieldfrom=field_ptr[0].text
                 tablename_temp = child[0][0].text.split()
@@ -451,32 +483,35 @@ def output_field(field_ptr,seg_name,field_tag,field_op_ct,op_file,name,ct_loop):
     field_set.add(name)
     dict_tag_out[''.join(l)] = [field_tag, field_ct_str]
 
-def output_seg(seg_ptr,op_file,name,ct_loop):
+def output_seg(group_name,seg_ptr,op_file,name,ct_loop):
     field_op_ct=1
     field_tag = ''
     for children in seg_ptr:
         if children.tag.split('}')[1]=="Composite":
-            output_seg(children,op_file,name,ct_loop)
+            output_seg(group_name,children,op_file,name,ct_loop)
         if children.tag.split('}')[1]=='BlockSig':
             field_tag=children[0].text
         elif children.tag.split('}')[1] == "Field":
-            output_field(children,seg_ptr[1].text,field_tag,field_op_ct,op_file,name,ct_loop)
+            output_field(group_name,children,seg_ptr[1].text,field_tag,field_op_ct,op_file,name,ct_loop)
             field_op_ct=field_op_ct+1
 
 def output_group(group_ptr,op_file):
+    group_name=group_ptr[1].text
     for children in group_ptr:
         if children.tag.split('}')[1]=="Group":
+            group_name=children[1].text
+            print(group_name)
             output_group(children,op_file)
         elif children.tag.split('}')[1]=="Segment":
             name=children[1].text
             ct_loop=children[7].text
             dict_seg_loop[name]=ct_loop
-            output_seg(children,op_file,name,ct_loop)
+            output_seg(group_name,children,op_file,name,ct_loop)
         elif children.tag.split('}')[1]=="PosRecord":
             name=children[1].text
             ct_loop=children[7].text
             dict_seg_loop[name]=ct_loop
-            output_seg(children,op_file,name,ct_loop)
+            output_seg(group_name,children,op_file,name,ct_loop)
 
 dict={}
 #key-field id, value-list of grp_name,seg_name,field_name
@@ -524,6 +559,7 @@ arr_java_out = ['new']
 dict_accumulator={}
 dict_accumulator_move={}
 dict_seg_loop={}
+dict_sum={}
 dict_op_acc={}
 
 link_notes_set=set()
@@ -626,6 +662,7 @@ func_type = Forward()
 next_int= variable + Literal('.') + CaselessKeyword("nextint") + Literal('(') + Literal(')')
 set_scale=CaselessKeyword("setScale")+Literal('(')+ (Word(nums)|variable|str_var) + ZeroOrMore(comma + (Word(nums)|variable|str_var)) + Literal(')')
 format = variable + Literal('.') + CaselessKeyword("format") + Literal('(') + variable + Literal(')')
+messagebox = CaselessKeyword('messagebox') + ZeroOrMore(Literal('(')) + (expression|variable_ref|field_name|str_var) + ZeroOrMore(Literal(')'))
 sort = CaselessKeyword('sort') + ZeroOrMore(Literal('(')) + group_name.setResultsName('GROUP') + arr_exp + comma + field_name + ZeroOrMore(comma+field_name) + ZeroOrMore(Literal(')'))
 cerror = CaselessKeyword("cerror") + ZeroOrMore(Literal('(')) + Word(nums) + comma + field_name + comma + Optional(str_var) + ZeroOrMore(Literal(')'))
 trimleft = CaselessKeyword("trimleft") + ZeroOrMore(Literal('(')) + (expression|variable_ref|field_name|str_var) + Optional(comma + (expression|(Word(nums).setResultsName('NUM'))|(str_var)|variable)) + ZeroOrMore(Literal(')'))
@@ -635,7 +672,7 @@ aton = CaselessKeyword("aton")  + ZeroOrMore(Literal('(')) + (expression|variabl
 eof = CaselessKeyword("eof") + ZeroOrMore(Literal('(')) +Literal('0') + ZeroOrMore(Literal(')'))
 sum = CaselessKeyword("sum") + ZeroOrMore(Literal('(')) + ZeroOrMore(str_var) + ZeroOrMore(Literal(')'))
 trim = CaselessKeyword("trim") +ZeroOrMore(Literal('(')) + (expression|variable.setResultsName('REF')|str_var|field_name) + Optional(comma + (expression|variable.setResultsName('STRING')|str_var|field_name)) + ZeroOrMore(Literal(')'))
-strstr = CaselessKeyword("strstr") + ZeroOrMore(Literal('(')) + (expression|variable.setResultsName('REF')|field_name_up|str_var) + comma +(expression|variable|field_name_up|str_var) + ZeroOrMore(Literal(')'))
+strstr = CaselessKeyword("strstr") + ZeroOrMore(Literal('(')) + (expression|variable.setResultsName('REF')|field_name|str_var) + comma +(expression|variable|field_name_up|str_var) + ZeroOrMore(Literal(')'))
 ntoa =  CaselessKeyword("ntoa") + ZeroOrMore(Literal('(')) + (expression|variable_ref|str_var|field_name) + comma + (variable.setResultsName('UPDATE')|field_name_up) + ZeroOrMore(Literal(')'))
 atoi = CaselessKeyword("atoi") + ZeroOrMore(Literal('(')) + (expression|variable_ref|str_var|field_name) + ZeroOrMore(Literal(')'))
 func_exp = variable + plus + Word(nums)
@@ -654,7 +691,7 @@ length_str = CaselessKeyword("len") + ZeroOrMore(Literal('(')) + (str_var|field_
 exist = CaselessKeyword("exist") + ZeroOrMore(Literal('(')) + (variable_ref|field_name) + ZeroOrMore(Literal(')'))
 empty = CaselessKeyword("empty") + ZeroOrMore(Literal('(')) + (field_name_up|variable) + ZeroOrMore(Literal(')'))
 set_func = CaselessKeyword("set") + (days|hours|minutes) + ZeroOrMore(Literal('(')) + (field_name_up|variable.setResultsName('UPDATE')) + comma + (field_name|variable_ref|str_var|Word(nums)) + ZeroOrMore(Literal(')'))
-func_type << Optional(Literal('!'))+(atoi | ntoa | mid | left | right | date |strdate | days_func | new | concat | delete | set_func | aton | exist| count | trim | eof | sum | strstr|length_str|trimleft|accum|trimright|sort|cerror|empty)
+func_type << Optional(Literal('!'))+(atoi | ntoa | mid | left | right | date |strdate | days_func | new | concat | delete | set_func | aton | exist| count | trim | eof | sum | strstr|length_str|trimleft|accum|trimright|sort|cerror|empty|messagebox)
 # expression << (next_int|format|func_type|variable_ref|Word(nums+"-").setResultsName('REF')|field_name|str_var_ref)+ZeroOrMore((plus|mul|div|left_shift|right_shift|Literal('.')|minus)+ (next_int|format|func_type|set_scale|variable_ref|Word(nums+"-").setResultsName('REF')|field_name|str_var_ref))
 expression <<   ZeroOrMore('(')+ (next_int|format|func_type|variable_ref|Word(nums+"-").setResultsName('REF')|field_name|str_var_ref)+ZeroOrMore(Literal('(')) + ZeroOrMore((plus|mul|div|left_shift|right_shift|Literal('.')|minus)+ZeroOrMore(Literal('('))+ (next_int|format|func_type|set_scale|variable_ref|Word(nums+"-").setResultsName('REF')|field_name|str_var_ref)+ZeroOrMore(Literal(')'))) + ZeroOrMore(Literal(')'))
 # expression << format
@@ -725,9 +762,9 @@ def function_for_functions_new(tokens,func_name,exist):
         rule =  " integer value of " + ref
     if func_name == "mid":
         print("################3333")
-        st = (rule_tokens[0][0][1]['START'][0])
-        end =int(rule_tokens[0][0][1]['END'][0])+int(st)
-        rule =upd + " =  substring of " + ref+" from position "+str(st)+ " to "+ str(end)
+        st = int(rule_tokens[0][0][1]['START'][0])+1
+        end =(rule_tokens[0][0][1]['END'][0])
+        rule = upd + " =  substring of " + ref +" from position " + str(st) + " to "+ end + " characters from that position "
         if exist==1:
             rule=rule+" not empty "
     if func_name == "left" :
@@ -980,16 +1017,16 @@ def function_for_functions(tokens,func_name,exist):
         #     print(ref)
         #     exit()
         #     return ""
-        st = int(rule_tokens[1]['START'][0])
+        st = int(rule_tokens[1]['START'][0])+1
         end = int(rule_tokens[1]['END'][0])
         if upd == "":
-            rule = " substring of " + ref+" from position "+str(st)+ " to "+ str(end)
+            rule = " substring of " + ref+" from position "+str(st)+ " to "+ str(end) + " from that position "
             if exist==1:
                 rule=rule+" not empty "
             else:
-                rule = upd + " = substring of " + ref+" from position "+str(st)+ " to "+ str(end)
+                rule = upd + " = substring of " + ref+" from position "+str(st)+ " to "+ str(end) + " from that position "
         else:
-            rule= "if " + upd  + " equals substring of " + ref +" from  " + str(st) + " to " + str(end)
+            rule= "if " + upd  + " equals substring of " + ref +" from  " + str(st) + " to " + str(end) +" from that position "
     if func_name == "left" :
         num=''
         str_val=''
@@ -1030,10 +1067,20 @@ def function_for_functions(tokens,func_name,exist):
             rule = "concatenate "+num+" chars of "+ ref +" to "+upd
     if func_name=="strstr":
         if(tokens[6]=='"'):
-            substring=tokens[7]
+            substring=tokens[5]
+            print("HI")
         else:
-            substring=tokens[6]
-        rule = "substring " + substring + " starts at " + upd
+            print("by")
+            substring=tokens[4]
+        if upd=='':
+            rule=" substring " + substring
+        else:
+            if upd=='-1':
+                rule = ref + " string does not contain " + substring
+            else:
+                rule = " substring " + substring + " position  equals " + upd
+        print(rule)
+
     if func_name=="trim":
         string=''
         if 'STRING' in rule_tokens[1]:
@@ -1438,7 +1485,9 @@ def decl_func(tokens,ip_or_op):
     rule_tokens = repr(rule_tokens)
     rule_tokens = eval(rule_tokens)
     print(rule_tokens)
-    var_type=(rule_tokens[0][0][1]['VARTYPE'][0])
+    var_type=''
+    if 'VARTYPE' in rule_tokens[0][0][1]:
+        var_type=(rule_tokens[0][0][1]['VARTYPE'][0])
     print(var_type)
     list_of_variables=rule_tokens[0][0][1]['VARIABLES']
     print(list_of_variables)
