@@ -1,0 +1,132 @@
+FIELD: D36
+Hardcode "00"
+
+field nameD36
+************
+Hardcode "00"
+
+field nameD37
+************
+If E2EDK01005/S46 ! = "00" and E2EDK01005/S46 ! = "000" then Populate "AC"
+If E2EDK01005/S46 = "00" or E2EDK01005/S46 = "000" then Populate "AD"
+
+field nameD38
+************
+If E2EDK02/S195 = "001" and if E2EDK02/S196 exists then map E2EDK02/S196
+
+field nameD39
+************
+If E2EDK02/S195 = "001" then map E2EDK02/S198
+
+field nameD40
+field nameD41
+field nameD42
+field nameD43
+field nameD44
+field nameD45
+field nameD636
+************
+if E2EDP02001/S329 exists and E2EDP02001/S327 = "001" then map E2EDP02001/S329
+
+field nameD637
+************
+if E2EDP01006/S277 exists then map E2EDP01006/S276
+
+field nameD638
+************
+if E2EDP01006/S277 exists then map E2EDP01006/S277
+
+field nameD639
+************
+if E2EDP01006/S281 exists and if E2EDP01006/S282 exists then map E2EDP01006/S281
+
+field nameD640
+************
+Hardcode "NT"
+field nameD641
+************
+if E2EDP19001/S499 = "003" and if E2EDP19001/S500 exists then Populate "UP"
+
+field nameD642
+************
+if E2EDP19001/S499 = "003" and if E2EDP19001/S500 exists then map E2EDP19001/S500
+
+field nameD643
+field nameD644
+field nameD645
+field nameD646
+field nameD647
+field nameD648
+field nameD649
+field nameD650
+field nameD651
+field nameD652
+field nameD653
+field nameD654
+field nameD655
+field nameD656
+field nameD657
+field nameD658
+field nameD659
+field nameD660
+field nameD1148:2
+************
+if E2EDP01006/S297 exists then Populate "IR"
+!(if E2EDP01006/S297 exists) then Populate "IA"
+
+field nameD1149:2
+************
+if E2EDP01006/S276 exists then map real number value of string E2EDP01006/S276
+
+field nameD1150:2
+************
+if E2EDP01006/S277 = "EA" then map E2EDP01006/S277
+
+field nameD1151:2
+field nameD1152:2
+field nameD1153:2
+field nameD1154:2
+field nameD1155:2
+field nameD1156:2
+field nameD1157:2
+field nameD1158:2
+field nameD1159:2
+field nameD1160:2
+field nameD1161:2
+field nameD1162:2
+field nameD1163:2
+field nameD1164:2
+field nameD1165:2
+field nameD1166:2
+field nameD1167:2
+field nameD1168:2
+field nameD1169:2
+field nameD1170:2
+field nameD1171:2
+field nameD1172:2
+field nameD1173:2
+field nameD1174:2
+field nameD1175:2
+field nameD1176:2
+field nameD1178
+************
+if E2EDP20001/S427 exists and if E2EDP20001/S427 is not empty then Populate "067"
+
+field nameD1179
+************
+if E2EDP20001/S427 exists and if E2EDP20001/S427 is not empty then map E2EDP20001/S427
+
+field nameD1180
+field nameD1181
+field nameD1182
+field nameD1183
+field nameD1948
+************
+If E2EDS01/S1005 = "001" then map E2EDS01/S1006
+
+field nameD1949
+field nameD1950
+field nameD1951
+field nameD1952
+field nameD1953
+field nameD1954

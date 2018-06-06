@@ -12,12 +12,42 @@ import os
 # from code_for_xml import *
 ip_count=-1
 op_count=-1
+inp_grp_name=''
+out_grp_name=''
 
+def preprocess(pre_n,pre_o):
+    for line in pre_o:
+        flag = 0
+        for ind, letter in enumerate(line):
+            if letter == '"':
+                if flag == 0:
+                    flag = 1
+                else:
+                    flag = 0
+            if flag == 1 and letter == '+':
+                line = line[:ind] + " plus999 " + line[ind + 1:]
+            if flag == 1 and letter == '-':
+                line = line[:ind] + " minus999 " + line[ind + 1:]
+            if flag ==1 and letter =='<':
+                line = line[:ind] + " less999 " + line[ind+1:]
+            if flag ==1 and letter =='>':
+                line = line[:ind] + " greater999 " + line[ind+1:]
+            if flag ==1 and letter =='*':
+                line = line[:ind] + " multiply999 " + line[ind+1:]
+            if flag ==1 and letter =='/':
+                line = line[:ind] + " divide999 " + line[ind+1:]
+            if flag ==1 and letter =='<<':
+                line = line[:ind] + " leftshift999 " + line[ind+1:]
+            if flag ==1 and letter =='>>':
+                line = line[:ind] + " rightshift999 " + line[ind+1:]
+        # print(line)
+        pre_n.write(line)
 
 def xml_field_func(field_ptr,grp_name,field_ct,fo,xml_tag,rec_id):
     dict_useless[field_ptr[0].text] = field_ptr[1].text
     dict_name_id[field_ptr[1].text] = field_ptr[0].text
     # print(field_ptr[0].text)
+    datatype=''
     for children in field_ptr:
         if children.tag.split('}')[1] == "ExplicitRule":
             if children.text != None:
@@ -44,6 +74,13 @@ def xml_field_func(field_ptr,grp_name,field_ct,fo,xml_tag,rec_id):
                 mapfrom=children[0][3][0].text
                 fieldto=children[0][3][1].text
                 dict_ip_select[fieldto]=[tablename,subtable,mapfrom,fieldfrom]
+        if children.tag.split('}')[1]=="StoreLimit":
+            for tags in children:
+                if tags.tag.split('}')[1]=="DataType":
+                    datatype=tags.text
+            if datatype=='numeric':
+                datatype='integer'
+
     # exit()
     dict.setdefault(field_ptr[0].text, []).append('')
     dict.setdefault(field_ptr[0].text, []).append(grp_name)
@@ -66,6 +103,8 @@ def xml_field_func(field_ptr,grp_name,field_ct,fo,xml_tag,rec_id):
     # else:
         field_set.add(name_field)
         # print(xml_tag)
+    dict_type[name_field]=datatype.lower()
+    dict_opposite_group[''.join(l)] = grp_name
 
 
 def xml_record_func(rec_ptr,grp_name,field_ct,fo,xml_tag):
@@ -95,6 +134,10 @@ def xml_particle_func(particle_ptr,grp_name,fo):
 
 def xml_group_func(group_ptr,grp_name,field_ct,fo):
     xml_tag=''
+    global inp_grp_name
+    if inp_grp_name == '':
+        inp_grp_name = group_ptr[1].text
+
     for children in group_ptr:
         if children.tag.split('}')[1]=="ExplicitRule":
             for categ in children:
@@ -117,6 +160,7 @@ def xml_group_func(group_ptr,grp_name,field_ct,fo):
 
 def field_func(field_ptr,grp_name,seg_name,field_ct,field_tag,fo):
     # from constants import count
+    datatype=''
     dict_useless[field_ptr[0].text]=field_ptr[1].text
     dict_name_id[field_ptr[1].text] = field_ptr[0].text
     for children in field_ptr:
@@ -130,9 +174,36 @@ def field_func(field_ptr,grp_name,seg_name,field_ct,field_tag,fo):
                 fo.write(children.text)
                 fo.write('\n')
 
+        if children.tag.split('}')[1]=="StoreLimit":
+            for tags in children:
+                if tags.tag.split('}')[1]=="DataType":
+                    datatype=tags.text
+            if datatype=='numeric':
+                datatype='integer'
+
         if children.tag.split('}')[1]=='ImplicitRuleDef':
             if children[0].tag.split('}')[1]=='UseConstant':
+                rule=field_ptr[1].text+' = ' + dict_constant[int(children[0][0].text)][2] + " ;"
+                cond=''
+                if children[0][1].text!='-1':
+                    cond="If " + dict[children[0][1].text][2] + " exists "
+                dict_token[field_ptr[1].text]=[['',cond,rule]]
                 dict_ip_ct[field_ptr[0].text]=children[0][0].text
+            if children[0].tag.split('}')[1]=="UseCode":
+                print(children[0][1].text)
+                print(dict)
+                code_note=''
+                if children[0][2]=='yes':
+                    code_note+="Raise a compliance error if the code is not found in the list "
+                if children[0][1].text in dict:
+                    code_note += "Select codelist value from Table "+ children[0][0].text + " where field value = " +  field_ptr[1].text + " and assign it to field " +  dict[children[0][1].text][2]
+                    # dict_notes[field_ptr[1].text] = code_note
+                    dict_token[dict[children[0][1].text][2]]=[[[dict[children[0][1].text][2]],'',code_note]]
+                else:
+                    code_note += "Select codelist value from Table "+ children[0][0].text + " where field value = " +  field_ptr[1].text + " and assign it to field " +  field_ptr[1].text
+                    # dict_notes[field_ptr[1].text] = code_note
+                    dict_token[field_ptr[1].text]=[[[field_ptr[1].text],'',code_note]]
+
             if children[0].tag.split('}')[1]=='UseSelect':
                 fieldfrom=field_ptr[0].text
                 tablename_temp=children[0][0].text.split()
@@ -140,7 +211,21 @@ def field_func(field_ptr,grp_name,seg_name,field_ct,field_tag,fo):
                 subtable=children[0][1].text
                 mapfrom=children[0][3][0].text
                 fieldto=children[0][3][1].text
-                dict_ip_select[fieldto]=[tablename,subtable,mapfrom,fieldfrom]
+                print([tablename,subtable,mapfrom,fieldfrom])
+                v=[tablename,subtable,mapfrom,fieldfrom]
+                print(v)
+                print(dict)
+                # exit()
+                if fieldto in dict:
+                    select_stmt="Populate "+v[2]+" from CODELIST equal " + children[0][0].text +" into "+dict[fieldto][2]+" where sendercode equals "+field_ptr[1].text +'\n'
+                    dict_ip_select[fieldto]=[tablename,subtable,mapfrom,fieldfrom]
+                    dict_token[dict[fieldto][2]]=[[dict[fieldto][2],'',select_stmt]]
+                else:
+                    select_stmt="Populate "+v[2]+" from CODELIST equal " + children[0][0].text +" into "+field_ptr[1].text + " where sendercode equals "+field_ptr[1].text+'\n'
+                    dict_ip_select[fieldto]=[tablename,subtable,mapfrom,fieldfrom]
+                    dict_token[field_ptr[1].text]=[[dict[fieldto][2],'',select_stmt]]
+
+
 
     # print(field_ptr[0].text)
     # exit()
@@ -164,6 +249,8 @@ def field_func(field_ptr,grp_name,seg_name,field_ct,field_tag,fo):
     # else:
         field_set.add(name_field)
         # print(field_tag)
+    dict_type[name_field]=datatype.lower()
+    dict_opposite_group[''.join(l)] = grp_name
 
 def seg_func(seg_ptr,grp_name,fo):
     # from constants import count
@@ -196,6 +283,11 @@ def seg_func(seg_ptr,grp_name,fo):
 
 def group_func(group_ptr,fo):
     # from constants import count
+    global inp_grp_name
+    if inp_grp_name == '':
+        inp_grp_name = group_ptr[1].text
+        print(inp_grp_name)
+
     for children in group_ptr:
         if children.tag.split('}')[1]=="ExplicitRule":
             for categ in children:
@@ -216,9 +308,12 @@ def group_func(group_ptr,fo):
             seg_func(children,group_ptr[1].text,fo)
         elif children.tag.split('}')[1]=="PosRecord":
             seg_func(children,group_ptr[1].text,fo)
+        elif children.tag.split('}')[1] == "VarDelimRecord":
+            seg_func(children,group_ptr[1].text,fo)
 
 def xml_output_field_func(field_ptr,grp_name,field_op_ct,op_file,group_ptr):
     # group_ptr[5].text=''
+    datatype=''
     temp_id = field_ptr[0].text
     temp_des = field_ptr[2].text
     dict_notes[field_ptr[1].text] = ['', '', '', '', '','']
@@ -260,6 +355,13 @@ def xml_output_field_func(field_ptr,grp_name,field_op_ct,op_file,group_ptr):
                 op_file.write(children.text)
                 op_file.write('\n')
 
+        if children.tag.split('}')[1]=="StoreLimit":
+            for tags in children:
+                if tags.tag.split('}')[1]=="DataType":
+                    datatype=tags.text
+            if datatype=='numeric':
+                datatype='integer'
+
         if children.tag.split('}')[1]=='ImplicitRuleDef':
             if children[0].tag.split('}')[1]=='UseConstant':
                 standard_notes_set.add(temp_id)
@@ -298,6 +400,8 @@ def xml_output_field_func(field_ptr,grp_name,field_op_ct,op_file,group_ptr):
     name_field=field_ptr[1].text
     name = ''.join(dict_ind_field[name_field])
     field_set.add(name)
+    dict_type[''.join(l)]=datatype.lower()
+    dict_opposite_group_out[''.join(l)] = grp_name
 
 def xml_output_record_func(rec_ptr,grp_name,field_op_ct,op_file,group_ptr):
     for children in rec_ptr:
@@ -325,6 +429,9 @@ def xml_output_particle_func(particle_ptr,grp_name,op_file):
 
 
 def xml_output_group_func(group_ptr,grp_name,field_ct,op_file):
+    global out_grp_name
+    if out_grp_name == '':
+        out_grp_name = group_ptr[1].text
     for children in group_ptr:
         if children.tag.split('}')[1]=="ExplicitRule":
             for categ in children:
@@ -351,6 +458,7 @@ def xml_output_group_func(group_ptr,grp_name,field_ct,op_file):
 
 def output_field(group_name,field_ptr,seg_name,field_tag,field_op_ct,op_file,name,ct_loop):
     # field_ptr[5].text = ''
+    datatype=''
     temp_id = field_ptr[0].text
     temp_des = field_ptr[2].text
     dict_notes[field_ptr[1].text]=['','','','','','']
@@ -365,6 +473,8 @@ def output_field(group_name,field_ptr,seg_name,field_tag,field_op_ct,op_file,nam
             if temp_ip in dict:
                 link_notes_set.add(temp_id)
                 link_list=dict[temp_ip]
+                print("DS")
+                print(link_list)
                 if(len(link_list)==3 and link_list[0].split('_')[0].lower()!='temp'
                 and link_list[1].split('_')[0].lower()!='temp' and link_list[2].split('_')[0].lower()!='temp'):
                     name_name=link_list[2]
@@ -372,8 +482,6 @@ def output_field(group_name,field_ptr,seg_name,field_tag,field_op_ct,op_file,nam
                         note="Map  "+(''.join(dict_ind_field[name_name]))
                         # note="map  "+link_list[0]+"/"+link_list[1]+"/"+link_list[2]
                         dict_notes[field_ptr[1].text][2]=note+'\n'
-                        # print(note)
-                        # exit()
                 # if(len(link_list)==3 and (link_list[0].split('_')[0]=='TEMP'
                 # or link_list[1].split('_')[0]=='TEMP' or link_list[2].split('_')[0]=='TEMP')):
                 if len(link_list) == 3 :
@@ -390,10 +498,22 @@ def output_field(group_name,field_ptr,seg_name,field_tag,field_op_ct,op_file,nam
                 op_file.write(child.text)
                 op_file.write('\n')
 
+        if child.tag.split('}')[1]=="StoreLimit":
+            for tags in child:
+                if tags.tag.split('}')[1]=="DataType":
+                    datatype=tags.text
+            if datatype=='numeric':
+                datatype='integer'
+
+
         if child.tag.split('}')[1]=='ImplicitRuleDef':
             if child[0].tag.split('}')[1]=='UseConstant':
                 standard_notes_set.add(temp_id)
-                dict_op_ct[field_ptr[0].text]=child[0][0].text
+                cond=''
+                print(field_ptr[1].text)
+                if child[0][1].text!='-1':
+                    cond=child[0][1].text
+                dict_op_ct[field_ptr[0].text]=[child[0][0].text,cond]
             acc_note = ''
             acc_flag = 0
             if child[0].tag.split('}')[1] == 'UseAccumulator':
@@ -432,7 +552,7 @@ def output_field(group_name,field_ptr,seg_name,field_tag,field_op_ct,op_file,nam
                             if acc_id in dict_sum:
                                 dict_sum[acc_id].append(l)
                             else:
-                                dict[acc_id]=l
+                                dict_sum[acc_id]=l
                         if acc_child.tag.split('}')[1] == 'AccumulatorAlternate':
                             acc_note += " Accumulator " + acc_child.text
                             print(acc_note)
@@ -441,10 +561,12 @@ def output_field(group_name,field_ptr,seg_name,field_tag,field_op_ct,op_file,nam
             loop_note=''
             if child[0].tag.split('}')[1]=='UseLoopCount':
                 loop_note= "Map number of times " + group_name + " repeats "
-                dict_notes[field_ptr[1].text][0] = loop_note
                 print(loop_note)
             code_note=''
             if child[0].tag.split('}')[1]=="UseCode":
+                code_note=""
+                if child[0][2]=='yes':
+                    code_note+="Raise a compliance error if the code is not found in the list "
                 code_note = "Select codelist value from Table "+ child[0][0].text + " where field value = " +  field_ptr[1].text + " and assign it to field " +  child[0][1].text
                 dict_notes[field_ptr[1].text][1] = code_note
             if child[0].tag.split('}')[1]=='UseSelect':
@@ -482,6 +604,8 @@ def output_field(group_name,field_ptr,seg_name,field_tag,field_op_ct,op_file,nam
     name = ''.join(dict_ind_field[name_field])
     field_set.add(name)
     dict_tag_out[''.join(l)] = [field_tag, field_ct_str]
+    dict_type[''.join(l)]=datatype.lower()
+    dict_opposite_group_out[''.join(l)] = group_name
 
 def output_seg(group_name,seg_ptr,op_file,name,ct_loop):
     field_op_ct=1
@@ -497,6 +621,12 @@ def output_seg(group_name,seg_ptr,op_file,name,ct_loop):
 
 def output_group(group_ptr,op_file):
     group_name=group_ptr[1].text
+
+    global out_grp_name
+    if out_grp_name == '':
+        out_grp_name = group_ptr[1].text
+        print(out_grp_name)
+
     for children in group_ptr:
         if children.tag.split('}')[1]=="Group":
             group_name=children[1].text
@@ -512,6 +642,12 @@ def output_group(group_ptr,op_file):
             ct_loop=children[7].text
             dict_seg_loop[name]=ct_loop
             output_seg(group_name,children,op_file,name,ct_loop)
+        elif children.tag.split('}')[1]=="VarDelimRecord":
+            name=children[1].text
+            ct_loop=children[7].text
+            dict_seg_loop[name]=ct_loop
+            output_seg(group_name,children,op_file,name,ct_loop)
+
 
 dict={}
 #key-field id, value-list of grp_name,seg_name,field_name
@@ -552,6 +688,8 @@ dict_opposite_out={}
 dict_opposite_name_id={}
 dict_name_id={}
 dict_op_date={}
+dict_opposite_group={}
+dict_opposite_group_out={}
 
 arr_java_inp = ['new']
 arr_java_out = ['new']
@@ -599,14 +737,27 @@ def initialize_variable_set(data_root,fo):
         if children.tag.split('}')[1]=='ExplicitRule':
             print("exp")
             for tags in children:
-                if tags.tag.split('}')[1]=='PreSessionRule':
-                    temp_list = tags.text.split(';')
-                    for item in temp_list:
-                        global ip_count
-                        ip_count = ip_count + 1
-                        dict_field[ip_count] = 'PRE_SESSION'
-                    fo.write(tags.text)
-                    fo.write('\n')
+                print(tags.tag)
+                global ip_count
+                if tags.tag!='' and tags.tag.split('}')[1]=='PreSessionRule':
+                    if tags.text!='':
+                        temp_list = tags.text.split(';')
+                        for item in temp_list:
+                            ip_count = ip_count + 1
+                            dict_field[ip_count] = 'PRE_SESSION'
+                        fo.write(tags.text)
+                        fo.write('\n')
+                if tags.tag!='' and tags.tag.split('}')[1]=='PostSessionRule':
+                    print("yo")
+                    print(tags.text)
+                    if not tags.text and not tags.text is None:
+                        print("oyoo")
+                        temp_list = tags.text.split(';')
+                        for item in temp_list:
+                            ip_count = ip_count + 1
+                            dict_field[ip_count] = 'POST_SESSION'
+                        fo.write(tags.text)
+                        fo.write('\n')
 
 
 ### def grammar(rule):
@@ -618,9 +769,13 @@ then_key = CaselessKeyword("then")
 begin_key= CaselessKeyword("begin")
 end_key = CaselessKeyword("end")
 else_key= CaselessKeyword("else")
+years = CaselessKeyword("years")
+months = CaselessKeyword("months")
+weeks = CaselessKeyword("weeks")
 days = CaselessKeyword("days")
 hours = CaselessKeyword("hours")
 minutes = CaselessKeyword("minutes")
+seconds = CaselessKeyword("seconds")
 else_if = CaselessKeyword("else if")
 while_key=CaselessKeyword('while')
 semicol = Literal(';')
@@ -647,27 +802,39 @@ identifier = (variable.setResultsName('VARIABLES') + ZeroOrMore(comma + variable
 real = CaselessKeyword("real")
 DateTime = CaselessKeyword("datetime")
 var_type = INT|string|OBJECT|real|DateTime
+expression=Forward()
 declare_stmt = var_type.setResultsName('VARTYPE') + identifier + semicol
-arr_exp = ZeroOrMore(Literal('[') + variable + Literal(']'))
+arr_exp = ZeroOrMore(Literal('[') + expression + Literal(']'))
 field_name_up = (ZeroOrMore(Literal('$') + variable + arr_exp + Literal('.')) + Literal('#') + variable.setResultsName('UPDATE') + arr_exp)
 field_name = (ZeroOrMore(Literal('$') + variable + arr_exp + Literal('.')) + Literal('#') + variable.setResultsName('REF') + arr_exp)
-str_var=((Literal('"')|Literal("'")) + Word(alphanums+''+" " +"_"+"\\"+"|"+"/"+'%'+'$'+"#" +"-"+"."+":"+"=" +')'+'(' + "*" + "<" + ">").setResultsName('STRING')+(Literal('"')|Literal("'")))|(Literal('"')+Literal('"'))|Literal("'")+Literal("'")
-str_var_ref=(Literal('"')|Literal("'")) + Word(alphanums+''+" "+"_"+"\\"+"|"+"/"+'%'+'$'+"#"+"-"+"."+":"+'('+')'+"="+"*"+ "<" + ">").setResultsName('REF') +(Literal('"')|Literal("'"))|(Literal('"')+Literal('"'))|Literal("'")+Literal("'")
-str_var_format=(Literal('"')|Literal("'")) + Word(alphanums+''+' '+"_"+"\\"+"|"+"/"+'%'+'$'+"#"+"-"+"."+":"+"="+"*"+'('+')'+ "<" + ">").setResultsName('FORMAT') +(Literal('"')|Literal("'"))|(Literal('"')+Literal('"'))|Literal("'")+Literal("'")
-str_var_up=(Literal('"')|Literal("'")) + Word(alphanums+''+' '+"_"+"\\"+"|"+"/"+'%'+'$'+"#"+"-"+"."+":"+"="+"*"+'('+')'+ "<" + ">").setResultsName('UPDATE') +(Literal('"')|Literal("'"))|(Literal('"')+Literal('"'))|Literal("'")+Literal("'")
+field_name_wo = (ZeroOrMore(Literal('$') + variable + arr_exp + Literal('.')) + Literal('#') + variable.setResultsName('REF') + arr_exp)
+str_var=((Literal('"')|Literal("'")) + Word(alphanums+''+" " +"_"+"\\"+"|"+"/"+'%'+'$'+"#" +"-"+"."+":"+"=" +')'+'(' + "*" + "<" + ">"+'^'+"'"+"+").setResultsName('STRING')+(Literal('"')|Literal("'")))|(Literal('"')+Literal('"'))|Literal("'")+Literal("'")
+str_var_ref=(Literal('"')|Literal("'")) + Word(alphanums+''+" "+"_"+"\\"+"|"+"/"+'%'+'$'+"#"+"-"+"."+":"+'('+')'+"="+"*"+ "<" + ">"+'^'+"'"+"+").setResultsName('REF') +(Literal('"')|Literal("'"))|(Literal('"')+Literal('"'))|Literal("'")+Literal("'")
+str_var_format=(Literal('"')|Literal("'")) + Word(alphanums+''+' '+"_"+"\\"+"|"+"/"+'%'+'$'+"#"+"-"+"."+":"+"="+"*"+'('+')'+ "<" + ">"+'^'+"'"+"+").setResultsName('FORMAT') +(Literal('"')|Literal("'"))|(Literal('"')+Literal('"'))|Literal("'")+Literal("'")
+str_var_up=(Literal('"')|Literal("'")) + Word(alphanums+''+' '+"_"+"\\"+"|"+"/"+'%'+'$'+"#"+"-"+"."+":"+"="+"*"+'('+')'+ "<" + ">"+'^'+"'"+"+").setResultsName('UPDATE') +(Literal('"')|Literal("'"))|(Literal('"')+Literal('"'))|Literal("'")+Literal("'")
 group_name= Literal('$') + variable.setResultsName('REF')
 grp_name_with_arr = Literal('$') + variable.setResultsName('REF') +arr_exp
-expression=Forward()
+grp_name_upd = Literal('$') + variable.setResultsName('UPD') + arr_exp
+
 func_type = Forward()
+collate =  CaselessKeyword("collate") + ZeroOrMore(Literal('(')) + grp_name_with_arr + ZeroOrMore(comma + field_name_wo) + comma + grp_name_with_arr + ZeroOrMore(comma+field_name_wo) + comma + grp_name_upd + ZeroOrMore(Literal(')'))
+get = CaselessKeyword("get") + (years|months|weeks|days|hours|minutes|seconds) + ZeroOrMore(Literal('(')) + (field_name|str_var_ref|variable_ref) + ZeroOrMore(Literal(')'))
+getcurrloc = CaselessKeyword("getcurrentlocationindex") + ZeroOrMore(Literal('(')) + ZeroOrMore(Literal(')'))
+index = CaselessKeyword("index") + ZeroOrMore(Literal('(')) + (field_name|variable_ref|Word(nums).setResultsName('REF')) + ZeroOrMore(Literal(')'))
+numerrors = CaselessKeyword("numerrors") + ZeroOrMore(Literal('(')) + ZeroOrMore(Literal(')'))
+occurrencetot = CaselessKeyword("occurrencetotal") + ZeroOrMore(Literal('(')) + (field_name|str_var_ref|variable_ref) + ZeroOrMore(Literal(')'))
+readblock = CaselessKeyword("readblock") + ZeroOrMore(Literal('(')) + (field_name|str_var_ref|variable_ref) + ZeroOrMore(Literal(')'))
+writeblock = CaselessKeyword("writeblock") + ZeroOrMore(Literal('(')) + (field_name|str_var_ref|variable_ref) + ZeroOrMore(Literal(')'))
+unreadblock = CaselessKeyword("unreadblock") + ZeroOrMore(Literal('(')) + ZeroOrMore(Literal(')'))
 next_int= variable + Literal('.') + CaselessKeyword("nextint") + Literal('(') + Literal(')')
 set_scale=CaselessKeyword("setScale")+Literal('(')+ (Word(nums)|variable|str_var) + ZeroOrMore(comma + (Word(nums)|variable|str_var)) + Literal(')')
 format = variable + Literal('.') + CaselessKeyword("format") + Literal('(') + variable + Literal(')')
-messagebox = CaselessKeyword('messagebox') + ZeroOrMore(Literal('(')) + (expression|variable_ref|field_name|str_var) + ZeroOrMore(Literal(')'))
+messagebox = CaselessKeyword('messagebox') + ZeroOrMore(Literal('(')) + (expression|variable_ref|field_name|str_var) + ZeroOrMore(comma + (Word(nums)|expression|variable_ref|field_name|str_var)) + ZeroOrMore(Literal(')'))
 sort = CaselessKeyword('sort') + ZeroOrMore(Literal('(')) + group_name.setResultsName('GROUP') + arr_exp + comma + field_name + ZeroOrMore(comma+field_name) + ZeroOrMore(Literal(')'))
-cerror = CaselessKeyword("cerror") + ZeroOrMore(Literal('(')) + Word(nums) + comma + field_name + comma + Optional(str_var) + ZeroOrMore(Literal(')'))
+cerror = CaselessKeyword("cerror") + ZeroOrMore(Literal('(')) + Word(nums) + comma + (field_name|str_var) + Optional(comma+str_var) + ZeroOrMore(Literal(')'))
 trimleft = CaselessKeyword("trimleft") + ZeroOrMore(Literal('(')) + (expression|variable_ref|field_name|str_var) + Optional(comma + (expression|(Word(nums).setResultsName('NUM'))|(str_var)|variable)) + ZeroOrMore(Literal(')'))
 trimright = CaselessKeyword("trimright") +   ZeroOrMore(Literal('(')) + (expression|variable_ref|field_name|str_var) + Optional(comma + (expression|(Word(nums).setResultsName('NUM'))|(str_var)|variable)) + ZeroOrMore(Literal(')'))
-count = CaselessKeyword("count")+ZeroOrMore(Literal('(')) + group_name + Literal('[') + Literal('*') + Literal(']') + ZeroOrMore(Literal(')'))
+count = CaselessKeyword("count")+ZeroOrMore(Literal('(')) + group_name + arr_exp + Literal('[') + (Literal('*')|Literal('&')) + Literal(']') + ZeroOrMore(Literal(')'))
 aton = CaselessKeyword("aton")  + ZeroOrMore(Literal('(')) + (expression|variable.setResultsName('REF')|str_var|field_name) +ZeroOrMore(Literal(')'))
 eof = CaselessKeyword("eof") + ZeroOrMore(Literal('(')) +Literal('0') + ZeroOrMore(Literal(')'))
 sum = CaselessKeyword("sum") + ZeroOrMore(Literal('(')) + ZeroOrMore(str_var) + ZeroOrMore(Literal(')'))
@@ -686,12 +853,18 @@ new = CaselessKeyword("new") +ZeroOrMore(Literal('(')) + (str_var|field_name|var
 accum = CaselessKeyword("accum") + ZeroOrMore(Literal('(')) + Word(nums) + ZeroOrMore(Literal(')'))
 concat = CaselessKeyword("concat") + ZeroOrMore(Literal('(')) + (field_name_up|variable.setResultsName('UPDATE')) +comma+ (field_name|str_var|variable_ref) + comma + Word(nums).setResultsName('NUM')+ ZeroOrMore(Literal(')'))
 delete = CaselessKeyword("delete") + ZeroOrMore(Literal('(')) + (field_name|variable|grp_name_with_arr) + ZeroOrMore(Literal(')'))
-days_func = CaselessKeyword("days") + ZeroOrMore(Literal('(')) + (field_name|variable_ref|str_var_ref|Word(nums).setResultsName('REF')) + ZeroOrMore(Literal(')'))
+years_func = CaselessKeyword("years") + ZeroOrMore(Literal('(')) + (field_name|variable_ref|str_var_ref|Word(nums+'-').setResultsName('REF')) + ZeroOrMore(Literal(')'))
+months_func = CaselessKeyword("months") + ZeroOrMore(Literal('(')) + (field_name|variable_ref|str_var_ref|Word(nums+'-').setResultsName('REF')) + ZeroOrMore(Literal(')'))
+weeks_func = CaselessKeyword("weeks") + ZeroOrMore(Literal('(')) + (field_name|variable_ref|str_var_ref|Word(nums+'-').setResultsName('REF')) + ZeroOrMore(Literal(')'))
+days_func = CaselessKeyword("days") + ZeroOrMore(Literal('(')) + (field_name|variable_ref|str_var_ref|Word(nums+'-').setResultsName('REF')) + ZeroOrMore(Literal(')'))
+hours_func = CaselessKeyword("hours") + ZeroOrMore(Literal('(')) + (field_name|variable_ref|str_var_ref|Word(nums+'-').setResultsName('REF')) + ZeroOrMore(Literal(')'))
+minutes_func = CaselessKeyword("minutes") + ZeroOrMore(Literal('(')) + (field_name|variable_ref|str_var_ref|Word(nums+'-').setResultsName('REF')) + ZeroOrMore(Literal(')'))
+seconds_func = CaselessKeyword("seconds") + ZeroOrMore(Literal('(')) + (field_name|variable_ref|str_var_ref|Word(nums+'-').setResultsName('REF')) + ZeroOrMore(Literal(')'))
 length_str = CaselessKeyword("len") + ZeroOrMore(Literal('(')) + (str_var|field_name|variable_ref) + ZeroOrMore(Literal(')'))
 exist = CaselessKeyword("exist") + ZeroOrMore(Literal('(')) + (variable_ref|field_name) + ZeroOrMore(Literal(')'))
 empty = CaselessKeyword("empty") + ZeroOrMore(Literal('(')) + (field_name_up|variable) + ZeroOrMore(Literal(')'))
-set_func = CaselessKeyword("set") + (days|hours|minutes) + ZeroOrMore(Literal('(')) + (field_name_up|variable.setResultsName('UPDATE')) + comma + (field_name|variable_ref|str_var|Word(nums)) + ZeroOrMore(Literal(')'))
-func_type << Optional(Literal('!'))+(atoi | ntoa | mid | left | right | date |strdate | days_func | new | concat | delete | set_func | aton | exist| count | trim | eof | sum | strstr|length_str|trimleft|accum|trimright|sort|cerror|empty|messagebox)
+set_func = CaselessKeyword("set") + (years|months|weeks|days|hours|minutes|seconds) + ZeroOrMore(Literal('(')) + (field_name_up|variable.setResultsName('UPDATE')) + comma + (field_name|variable_ref|str_var|Word(nums)) + ZeroOrMore(Literal(')'))
+func_type << Optional(Literal('!'))+(atoi | ntoa | mid | left | right | date |strdate | years_func |months_func|weeks_func|days_func|hours_func|minutes_func|seconds_func| new | concat | delete | set_func | aton | exist| count | trim | eof | sum | strstr|length_str|trimleft|accum|trimright|sort|cerror|empty|messagebox|collate|get|getcurrloc|index|numerrors|occurrencetot|readblock|writeblock|unreadblock)
 # expression << (next_int|format|func_type|variable_ref|Word(nums+"-").setResultsName('REF')|field_name|str_var_ref)+ZeroOrMore((plus|mul|div|left_shift|right_shift|Literal('.')|minus)+ (next_int|format|func_type|set_scale|variable_ref|Word(nums+"-").setResultsName('REF')|field_name|str_var_ref))
 expression <<   ZeroOrMore('(')+ (next_int|format|func_type|variable_ref|Word(nums+"-").setResultsName('REF')|field_name|str_var_ref)+ZeroOrMore(Literal('(')) + ZeroOrMore((plus|mul|div|left_shift|right_shift|Literal('.')|minus)+ZeroOrMore(Literal('('))+ (next_int|format|func_type|set_scale|variable_ref|Word(nums+"-").setResultsName('REF')|field_name|str_var_ref)+ZeroOrMore(Literal(')'))) + ZeroOrMore(Literal(')'))
 # expression << format
@@ -717,18 +890,18 @@ update = CaselessKeyword('Update') + (variable.setResultsName('UPDATE')|field_na
 # if_stmt << if_key + conditions + then_key +  ((statement)|(begin_key + ZeroOrMore(statement) + end_key))+ Optional(else_key +((statement)|(begin_key + ZeroOrMore(statement) + end_key)))
 sql_stmt = update | select
 While_stmt << while_key + conditions + CaselessKeyword('do') + Optional((declare_stmt|assign_stmt|(func_type + semicol)|if_stmt|sql_stmt|While_stmt|CaselessKeyword('continue;')|CaselessKeyword('break;'))|(begin_key + ZeroOrMore(declare_stmt|assign_stmt|(func_type + semicol)|if_stmt|sql_stmt|While_stmt|CaselessKeyword('break;')|CaselessKeyword('continue;')) + end_key))
-if_stmt << if_key + conditions + then_key +  Optional((declare_stmt|assign_stmt|(func_type + semicol)|if_stmt|sql_stmt|While_stmt)|(begin_key + ZeroOrMore(declare_stmt|assign_stmt|(func_type + semicol)|if_stmt|sql_stmt|While_stmt) + end_key)) + Optional(else_if+ conditions + then_key + ((declare_stmt|assign_stmt|(func_type + semicol)|if_stmt|sql_stmt|While_stmt)|(begin_key + ZeroOrMore(declare_stmt|assign_stmt|(func_type + semicol)|if_stmt|sql_stmt|While_stmt) + end_key))) +     Optional(else_key +((declare_stmt|assign_stmt|if_stmt|(func_type + semicol)|sql_stmt|While_stmt)|(begin_key + ZeroOrMore(declare_stmt|assign_stmt|(func_type + semicol)|if_stmt|sql_stmt|While_stmt) + end_key)))
+if_stmt << if_key + conditions + then_key +  Optional((declare_stmt|assign_stmt|(func_type + semicol)|if_stmt|sql_stmt|While_stmt)|(begin_key + ZeroOrMore(declare_stmt|assign_stmt|(func_type + semicol)|if_stmt|sql_stmt|While_stmt|CaselessKeyword('continue;')|CaselessKeyword('break;')) + end_key)) + Optional(else_if+ conditions + then_key + ((declare_stmt|assign_stmt|(func_type + semicol)|if_stmt|sql_stmt|While_stmt)|(begin_key + ZeroOrMore(declare_stmt|assign_stmt|(func_type + semicol)|if_stmt|sql_stmt|While_stmt|CaselessKeyword('continue;')|CaselessKeyword('break;')) + end_key))) +     Optional(else_key +((declare_stmt|assign_stmt|if_stmt|(func_type + semicol)|sql_stmt|While_stmt)|(begin_key + ZeroOrMore(declare_stmt|assign_stmt|(func_type + semicol)|if_stmt|sql_stmt|While_stmt|CaselessKeyword('continue;')|CaselessKeyword('break;')) + end_key)))
 statement = pp.Group(declare_stmt)|pp.Group(assign_stmt)|pp.Group(func_type + semicol)|pp.Group(if_stmt)|pp.Group(sql_stmt)|pp.Group(While_stmt)|conditions|(func_type)
 
 start = ZeroOrMore(statement)
 
 join_list=["!","&","and","or","!"]
-func_list=["atoi","ntoa","mid","left","right","date","strdate","new","concat","delete","len", "set", "sort" ,"strstr", "trim" , "sum", "eof", "aton", "count","exist","days","cerror","trimleft","accum","trimright","sort"," cerror","empty"]
+func_list=["atoi","ntoa","mid","left","right","date","strdate","new","concat","delete","len", "set", "sort" ,"strstr", "trim" , "sum", "eof", "aton", "count","exist","years","months","weeks","days","hours","minutes","seconds","cerror","trimleft","accum","trimright","sort"," cerror","empty","collate","get","getcurrentlocationindex","index","numerrors","readblock","writeblock","unreadblock","occurrencetotal","messagebox"]
 
 ### to process the functions + functions coming in the assignment statements of if-statements
 def function_for_functions_new(tokens,func_name,exist):
     print("entering into functions fn")
-    rule_str = ''.join(tokens)
+    rule_str = ' '.join(tokens)
     print(rule_str)
     rule_tokens = statement.parseString(rule_str)
     print(rule_tokens)
@@ -751,6 +924,33 @@ def function_for_functions_new(tokens,func_name,exist):
         ref = 'accumulator '
     if 'UPDATE' in rule_tokens[0][0][1] :
         upd = rule_tokens[0][0][1]['UPDATE'][0]
+    if func_name == "get":
+        tokens=list(tokens)
+        # print(type(tokens))
+        # print(tokens[0])
+        ind = tokens.index("get")
+        rule = " get number of "+tokens[ind+1]+" in "+ref
+
+    if func_name == "index":
+        rule = " current loop count of "+ref
+    if func_name =="readblock":
+        rule = " read "+ref
+    if func_name == "writeblock":
+        rule = " write into "+ref
+    if func_name == "unreadblock":
+        rule = " unread the last block "
+    if func_name == "getcurrentlocationindex":
+        rule = upd+" the current location index"
+    if func_name == "occurrencetotal":
+        rule = upd +" total number of occurrences of "+ref
+    if func_name =="collate":
+        if 'REF' in rule_tokens[0][0][1] and len(rule_tokens[0][0][1]['REF'])>1:
+            ref = ' and '.join(rule_tokens[0][0][1]['REF'])
+        rule = " combine "+ref+" to form "+ upd
+    if func_name == "numerrors":
+        rule = upd +" current count of errors "
+    if func_name == "messagebox":
+        rule = " print "+ref
     if func_name == "ntoa" :
         print(ref)
         rule = " string value of "+ ref
@@ -784,11 +984,53 @@ def function_for_functions_new(tokens,func_name,exist):
             rule =ref+" in format "+format
         else:
             rule = "set date as " + rule_str.split('=')[1]
+    if func_name=="years":
+        ref=''
+        if 'REF' in rule_tokens[0][0][1]:
+            ref=rule_tokens[0][0][1]['REF'][0]
+            rule= ref + " number of years"
+        else:
+            rule=''
+    if func_name=="months":
+        ref=''
+        if 'REF' in rule_tokens[0][0][1]:
+            ref=rule_tokens[0][0][1]['REF'][0]
+            rule= ref + " number of months"
+        else:
+            rule=''
+    if func_name=="weeks":
+        ref=''
+        if 'REF' in rule_tokens[0][0][1]:
+            ref=rule_tokens[0][0][1]['REF'][0]
+            rule= ref + " number of weeks"
+        else:
+            rule=''
     if func_name=="days":
         ref=''
         if 'REF' in rule_tokens[0][0][1]:
             ref=rule_tokens[0][0][1]['REF'][0]
             rule= ref + " number of days"
+        else:
+            rule=''
+    if func_name=="hours":
+        ref=''
+        if 'REF' in rule_tokens[0][0][1]:
+            ref=rule_tokens[0][0][1]['REF'][0]
+            rule= ref + " number of hours"
+        else:
+            rule=''
+    if func_name=="minutes":
+        ref=''
+        if 'REF' in rule_tokens[0][0][1]:
+            ref=rule_tokens[0][0][1]['REF'][0]
+            rule= ref + " number of minutes"
+        else:
+            rule=''
+    if func_name=="seconds":
+        ref=''
+        if 'REF' in rule_tokens[0][0][1]:
+            ref=rule_tokens[0][0][1]['REF'][0]
+            rule= ref + " number of seconds"
         else:
             rule=''
     if func_name == "strdate":
@@ -899,6 +1141,20 @@ def ass_func(tokens,index_start):
     print(rule)
     while x<len(rule):
         if rule[x]=='$':
+            if 'count' in rule:
+                new_rule.append(rule[x])
+                x=x+1
+                while rule[x]!='[':
+                    new_rule.append(rule[x])
+                    x=x+1
+                while rule[x]!=';':
+                    x=x+1
+                new_rule.append('[')
+                new_rule.append('&')
+                new_rule.append(']')
+                new_rule.append(')')
+                new_rule.append(';')
+                break
             while x<len(rule) and rule[x]!='#':
                 x=x+1
             x=x+1
@@ -956,7 +1212,12 @@ def ass_func(tokens,index_start):
             final_stmt=temporary_rule
         else:
             if len(store_op)!=0 and op_in<len(store_op):
-                final_stmt=final_stmt + store_op[op_in] + temporary_rule
+                if store_op[op_in]=='<<':
+                        final_stmt=final_stmt + "add" + temporary_rule
+                elif store_op[op_in]=='>>':
+                    final_stmt=final_stmt + "subtract" + temporary_rule
+                else:
+                    final_stmt=final_stmt + store_op[op_in] + temporary_rule
                 op_in=op_in+1
             else:
                 final_stmt=temporary_rule
@@ -1011,7 +1272,30 @@ def function_for_functions(tokens,func_name,exist):
         rule = " value of accumulator "
     if func_name=="empty":
         rule= upd + " = make the value of the field NULL "
-
+    if func_name == "get":
+        tokens=list(tokens)
+        ind = tokens.index("get")
+        rule = " number of "+tokens[ind+1]+" in "+upd
+    if func_name == "index":
+        rule = " current loop count of "+ref
+    if func_name =="readblock":
+        rule = " read "+ref
+    if func_name == "writeblock":
+        rule = " write into "+ref
+    if func_name == "unreadblock":
+        rule = " unread the last block "
+    if func_name == "getcurrentlocationindex":
+        rule = upd+" = the current location index"
+    if func_name == "occurrencetotal":
+        rule = upd +" = total number of occurrences of "+ref
+    if func_name =="collate":
+        if 'REF' in rule_tokens[1] and len(rule_tokens[1]['REF'])>1:
+            ref = ' and '.join(rule_tokens[1]['REF'])
+        rule = " combining "+ref+" to form "+ upd
+    if func_name == "numerrors":
+        rule = upd +" = current count of errors "
+    if func_name == "messagebox":
+        rule = " print "+ref
     if func_name == "mid":
         # if ref not in field_set:
         #     print(ref)
@@ -1049,8 +1333,20 @@ def function_for_functions(tokens,func_name,exist):
     if func_name=="date" :
         format = rule_tokens[1]['FORMAT'][0]
         rule = upd +" = "+ref+" in format "+format
-    if func_name=="days":
-        rule = ref+ " number of days"
+    if func_name == "years":
+        rule = ref + " number of years"
+    if func_name == "months":
+        rule = ref + " number of months"
+    if func_name == "weeks":
+        rule = ref + " number of weeks"
+    if func_name == "days":
+        rule = ref + " number of days"
+    if func_name == "hours":
+        rule = ref + " number of hours"
+    if func_name == "minutes":
+        rule = ref + " number of minutes"
+    if func_name == "seconds":
+        rule = ref + " number of seconds"
     if func_name == "strdate":
         format = rule_tokens[1]['FORMAT'][0]
         rule = upd +" = "+ ref + " in format "+ format
@@ -1145,6 +1441,7 @@ def function_for_functions(tokens,func_name,exist):
         temp.append([[ref], "", rule])
         dict_token[upd] = temp
     return rule
+
 
 
 
@@ -1396,6 +1693,8 @@ def sql_func(tokens,dict_token,ip_or_op):
 ### for processing each of the statements inside the if statement
 def eval_sent(tokens, index, stack,dict_token):
     i=index
+    if i<len(tokens) and (tokens[i].lower()=='continue' or tokens[i]=='break'):
+        return i+2
     if i<len(tokens) and tokens[i]=='if':
         i=if_func(tokens,i,stack,dict_token)
         return i
@@ -1532,6 +1831,13 @@ def handle_java(line_list,arr_java,null_flag):
             for item in obj_split[1].split():
                 item = item.replace(';', '')
                 arr_java.append(item.strip())
+        if obj_split[0].strip() in arr_java:
+            line_list[ind]=''
+            continue
+        obj_split_sec = line.split('.',1)
+        if obj_split_sec[0].strip() in arr_java:
+            line_list[ind]=''
+            continue
         flag = 0
         # print("helo")
         split_list = line.split('=', 1)
@@ -1628,7 +1934,7 @@ def make_dictionary(result,dict_token,ip_or_op):
     print("this is the final dictionary")
 
 
-def find_in_dict_token(var,note,temp_dict,inp_op):
+def find_in_dict_token(var,note,temp_dict,inp_op,old_var):
     if inp_op==0:
         print("start of find_in_dict_token")
         if var not in dict_token:
@@ -1657,12 +1963,14 @@ def find_in_dict_token(var,note,temp_dict,inp_op):
         x=(list(set(x)))
         flag=0
         for var_var in x :
+            if var_var.strip()==old_var.strip():
+                continue
             if var_var== var:
                 continue
             if (var_var in dict_token )and (inp_op==0):
-                temp_list_note.extend(find_in_dict_token(var_var,note,temp_dict,inp_op))
+                temp_list_note.extend(find_in_dict_token(var_var,note,temp_dict,inp_op,var))
             if ((var_var in dict_token) or (var_var in dict_op_token)) and (inp_op==1):
-                temp_list_note.extend(find_in_dict_token(var_var,note,temp_dict,inp_op))
+                temp_list_note.extend(find_in_dict_token(var_var,note,temp_dict,inp_op,var))
         temp_note=""
         if var not in dict_ind_field:
             print("NOTES FOR VARIABLE")
@@ -1958,7 +2266,7 @@ def final_note_for_field(field_ptr,temp_id,inp_op):
     temp_dict={}
     print("field")
     print(temp_list[0])
-    list_note = find_in_dict_token(temp_list[0], note,temp_dict,inp_op)
+    list_note = find_in_dict_token(temp_list[0], note,temp_dict,inp_op,'')
 
     print(list_note)
     print("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$")
@@ -2108,10 +2416,12 @@ def output_field_note(field_ptr,inp_op):
         final_note=''
         if temp_id in dict_op_ct:
             print(temp_id)
-            const_val=int(dict_op_ct[temp_id])
+            const_val=int(dict_op_ct[temp_id][0])
             if const_val in dict_constant:
                 f.write("FIELD: "+ dict_useless[temp_id] +"\n")
-                final_note="Hardcode " + "\""+ dict_constant[const_val][2]+"\""+'\n'
+                if dict_op_ct[temp_id][1]:
+                    final_note+="If " + dict[dict_op_ct[temp_id][1]][2] + " exists then "
+                final_note+="Hardcode " + "\""+ dict_constant[const_val][2]+"\""+'\n'
                 print(final_note)
                 f.write(final_note)
                 f.write('\n')
@@ -2179,6 +2489,9 @@ def output_group_note(group_ptr):
         elif children.tag.split('}')[1]=="PosRecord":
             output_seg_note_link(children)
             output_seg_note_op(children)
+        elif children.tag.split('}')[1]=="VarDelimRecord":
+            output_seg_note_link(children)
+            output_seg_note_op(children)
 
 
 def xml_output_rec_note_link(rec_ptr):
@@ -2240,6 +2553,7 @@ def check_for_note(list_from_dict,i):
     output_note = list_from_dict[3]
     output_note_list = output_note.split('\n')
     print(output_note_list)
+    flag=0
     for line in output_note_list:
         line_list=line.split()
         if 'accumulator' in line_list:
@@ -2250,11 +2564,12 @@ def check_for_note(list_from_dict,i):
         if (line.split()[0].lower() == 'populate' or line.split()[0].lower() == 'hardcode') and len(line.split('+'))==1:
             note = line
             break
-        note=''
-        if i!=3:
-            note = list_from_dict[i]
+        # note=''
+        if i!=3 and flag==0:
+            note = list_from_dict[i]+"\n"
+            flag=1
         if line.split()[0].lower() == 'if':
-            note += line
+            note += line+"\n"
         elif line.split()[0].lower() == 'select':
             note += line
             split_list = line.split()
@@ -2309,7 +2624,12 @@ def change_format(note,i_f,o_f):
                         field_name_list=dict[field_id]
                         token_list[ind]=field_name_list[1]+"/"+field_name_list[2]
                     if i_f=='EDI':
-                        token_list[ind] = ''.join(dict_tag_inp[token])
+                        global inp_grp_name
+                        grp_name = dict_opposite_group[token]
+                        if grp_name!=inp_grp_name:
+                            token_list[ind] = grp_name+"/"+''.join(dict_tag_inp[token])
+                        else:
+                            token_list[ind] = ''.join(dict_tag_inp[token])
             elif token in dict_opposite_out:
                 field=dict_opposite_out[token]
                 if field in dict_opposite_name_id:      ## that is it's output field
@@ -2321,10 +2641,12 @@ def change_format(note,i_f,o_f):
                         field_name_list = dict[field_id]
                         token_list[ind] = field_name_list[1]+"/"+field_name_list[2]
                     if o_f=='EDI':
-                        print('token')
-                        print(token)
-                        print(dict_tag_out[token])
-                        token_list[ind] = ''.join(dict_tag_out[token])
+                        global out_grp_name
+                        grp_name=dict_opposite_group_out[token]
+                        if grp_name!=out_grp_name:
+                            token_list[ind] = grp_name+"/"+''.join(dict_tag_out[token])
+                        else:
+                            token_list[ind] = ''.join(dict_tag_out[token])
         print(' '.join(token_list))
         line_list[line_ind]=' '.join(token_list)
     print('\n'.join(line_list))
@@ -2333,6 +2655,7 @@ def change_format(note,i_f,o_f):
 
 
 def output_field_note_combine(field_ptr,i_f,o_f,pseudo_pointer):
+    # global f
     if field_ptr[3].text == '0':
         if o_f=="XML":
             link_notes_set.discard(pseudo_pointer[0].text)
@@ -2369,6 +2692,11 @@ def output_field_note_combine(field_ptr,i_f,o_f,pseudo_pointer):
             print("CH")
             print(note)
             # exit()
+            note_note=note.split()
+            if note_note[0].lower()=='hardcode':
+                note_note[1]='"'+note_note[1]
+                note_note[len(note_note)-1]=note_note[len(note_note)-1]+'"'
+            note=' '.join(note_note)
             field_ptr[5].text=note
             if o_f=="XML":
                 extended_notes_set.discard(pseudo_pointer[0].text)
@@ -2396,6 +2724,11 @@ def output_field_note_combine(field_ptr,i_f,o_f,pseudo_pointer):
         if list_from_dict[3]:
             note=''
             note=check_for_note(list_from_dict,4)
+            note_note=note.split()
+            if note_note[0].lower()=='hardcode':
+                note_note[1]='"'+note_note[1]
+                note_note[len(note_note)-1]=note_note[len(note_note)-1]+'"'
+            note=' '.join(note_note)
             field_ptr[5].text=note
             if o_f=="XML":
                 extended_notes_set.discard(pseudo_pointer[0].text)
@@ -2424,6 +2757,11 @@ def output_field_note_combine(field_ptr,i_f,o_f,pseudo_pointer):
             note=''
             note=check_for_note(list_from_dict,5)
             note = change_format(note, i_f, o_f)
+            note_note=note.split()
+            if note_note[0].lower()=='hardcode':
+                note_note[1]='"'+note_note[1]
+                note_note[len(note_note)-1]=note_note[len(note_note)-1]+'"'
+            note=' '.join(note_note)
             field_ptr[5].text=note
             if o_f=="XML":
                 extended_notes_set.discard(pseudo_pointer[0].text)
@@ -2473,6 +2811,11 @@ def output_field_note_combine(field_ptr,i_f,o_f,pseudo_pointer):
 
         if list_from_dict[3]:
             note=check_for_note(list_from_dict,1)
+            note_note=note.split()
+            if note_note[0].lower()=='hardcode':
+                note_note[1]='"'+note_note[1]
+                note_note[len(note_note)-1]=note_note[len(note_note)-1]+'"'
+            note=' '.join(note_note)
             if o_f=="XML":
                 extended_notes_set.discard(pseudo_pointer[0].text)
             else:
@@ -2493,6 +2836,11 @@ def output_field_note_combine(field_ptr,i_f,o_f,pseudo_pointer):
             note=''
             note=check_for_note(list_from_dict,2)
             note = change_format(note, i_f, o_f)
+            note_note=note.split()
+            if note_note[0].lower()=='hardcode':
+                note_note[1]='"'+note_note[1]
+                note_note[len(note_note)-1]=note_note[len(note_note)-1]+'"'
+            note=' '.join(note_note)
             field_ptr[5].text=note
             if o_f=="XML":
                 extended_notes_set.discard(pseudo_pointer[0].text)
@@ -2519,6 +2867,11 @@ def output_field_note_combine(field_ptr,i_f,o_f,pseudo_pointer):
         print(note)
         # exit()
         # print(note)
+        note_note=note.split()
+        if note_note[0].lower()=='hardcode':
+            note_note[1]='"'+note_note[1]
+            note_note[len(note_note)-1]=note_note[len(note_note)-1]+'"'
+        note=' '.join(note_note)
         field_ptr[5].text = note
         if o_f == "XML":
             extended_notes_set.discard(pseudo_pointer[0].text)
@@ -2548,13 +2901,21 @@ def output_group_note_combine(group_ptr,inp_format,out_format):
             output_seg_note_combine(children,inp_format,out_format)
         elif children.tag.split('}')[1]=="PosRecord":
             output_seg_note_combine(children,inp_format,out_format)
+        elif children.tag.split('}')[1]=="VarDelimRecord":
+            output_seg_note_combine(children,inp_format,out_format)
 
 
 def xml_output_rec_note_combine(rec_ptr,i_f,o_f,group_ptr):
     # print("rec")
+    rec_type = ''
     for children in rec_ptr:
-        if children.tag.split('}')[1]=="Field":
-            output_field_note_combine(group_ptr,i_f,o_f,children)
+        if children.tag.split('}')[1] == "RecordType":
+            rec_type = children.text
+        if children.tag.split('}')[1] == "Field":
+            if rec_type.lower() == 'pcdata':
+                output_field_note_combine(group_ptr, i_f, o_f, children)
+            else:
+                output_field_note_combine(children, i_f, o_f, children)
 
 
 def xml_output_particle_note_combine(particle_ptr,i_f,o_f):
@@ -2608,6 +2969,7 @@ def write_func(data_root,etree,raw_data,answer):
     etree.register_namespace("", "http://www.stercomm.com/SI/Map")
     raw_data.write(output_file, encoding='utf-8', xml_declaration=True)
     f.close()
+    return output_file
 
 def make_log(lf):
     for item in link_notes_set:

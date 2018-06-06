@@ -10,7 +10,7 @@ import tkinter as tk
 from tkinter import filedialog
 import os
 import shutil
-
+import sys
 
 
 application_window = tk.Tk()
@@ -39,7 +39,8 @@ answer = filedialog.askopenfilename(parent=application_window,
                                     initialdir=os.getcwd(),
                                     title="Please select a file:",
                                     filetypes=my_filetypes)
-print(answer)
+# answer=sys.argv[1]
+# print(answer)
 # filehandler = open("VFS_ALL_BCFACC_O_810_4010.mxl"ll,"r",'utf-8')
 dest_list=answer.split("/")
 temp=dest_list[len(dest_list)-1]
@@ -78,7 +79,7 @@ empty_notes(data_root,etree,raw_data,dst)
 
 
 initialize_variable_set(data_root,fo)
-
+initialize_const_map(data_root)
 if inp_format_tag.split('}')[1]=='EDISyntax':
     print("&&&&&&&&&&&&&&&&&")
     input_format='EDI'
@@ -92,6 +93,10 @@ elif inp_format_tag.split('}')[1]=='PosSyntax':
     # exit()
     edi_initialize_dict(data_root,fo)
     # allcases = data_root_ddf.findall(".//POSFIELD")
+elif inp_format_tag.split('}')[1]=='VarDelimSyntax':
+    input_format='CSV'
+    print("csv")
+    edi_initialize_dict(data_root,fo)
 elif inp_format_tag.split('}')[1]=='XMLSyntax':
     input_format='XML'
     print("**********")
@@ -117,6 +122,12 @@ all_set=set()
 nf = open('others/newfile.txt','w')
 of = open('others/writefile.txt','r')
 remove_comments(nf,of)
+
+pre_n = open('others/prefile.txt','w')
+pre_o = open('others/newfile.txt','r')
+preprocess(pre_n,pre_o)
+pre_n.close()
+pre_o.close()
 
 jf = open('others/javafile.txt','w')
 line_list = [line.rstrip('\n') for line in open('others/newfile.txt')]
@@ -151,6 +162,9 @@ if out_format_tag.split('}')[1] == 'EDISyntax':
 elif out_format_tag.split('}')[1] == 'PosSyntax':
     output_format = 'IDOC'
     edi_initialize_output_dict(data_root, op_file)
+elif out_format_tag.split('}')[1] == 'VarDelimSyntax':
+    output_format = 'CSV'
+    edi_initialize_output_dict(data_root, op_file)
 elif out_format_tag.split('}')[1] == 'XMLSyntax':
     output_format = 'XML'
     xml_initialize_output_dict(data_root, op_file)
@@ -160,6 +174,12 @@ elif out_format_tag.split('}')[1] == 'XMLSyntax':
 op_nf = open('others/op_newfile.txt','w')
 op_of = open('others/op_writefile.txt','r')
 remove_comments(op_nf,op_of)
+
+op_pre_n = open('others/op_prefile.txt','w')
+op_pre_o = open('others/op_newfile.txt','r')
+preprocess(op_pre_n,op_pre_o)
+op_pre_n.close()
+op_pre_o.close()
 
 op_jf = open('others/op_javafile.txt','w')
 line_list_op = [line.rstrip('\n') for line in open('others/op_newfile.txt')]
@@ -181,7 +201,7 @@ op_file.close()
 print(dict_op_token)
 print("HOLA!")
 
-initialize_const_map(data_root)
+# initialize_const_map(data_root)
 
 
 
@@ -193,7 +213,8 @@ elif output_format=='IDOC':
     edi_make_notes(data_root)
 elif output_format=='XML':
     xml_make_notes(data_root)
-
+elif output_format=='CSV' :
+    edi_make_notes(data_root)
 
 
 # for k,v in dict_notes.items():
@@ -206,6 +227,8 @@ print(extended_notes_set)
 if output_format=='EDI':
     edi_populate_notes(data_root,input_format,output_format)
 elif output_format=='IDOC':
+    edi_populate_notes(data_root,input_format,output_format)
+elif output_format=='CSV':
     edi_populate_notes(data_root,input_format,output_format)
 elif output_format=='XML':
     print("did it enter...did it???????")

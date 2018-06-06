@@ -1,80 +1,45 @@
-string[8000] buffer;
-string[4] match,match2,match3,match4;
-string[3] flag,flag2,VAR_UNZ,VAR_LEN;
-integer match_len,cnt_UTH,i;
-string [256] VAR_RIGHT,VAR_LEFT,VAR_MID,VAR_COUNT,VAR_DELIMITER;
-string [256] VAR_PROCESSFLAG,VAR_PROCESSFLAG_VALUE;
-VAR_RIGHT="";
-VAR_MID="";
-VAR_LEFT="";
-VAR_DELIMITER="";
-VAR_COUNT="";
-flag = "N";
-flag2="N";
-cnt_UTH=0;
-VAR_UNZ="";
-VAR_LEN="";
-match4="";
-i=0;
-match = "UNH";
-match2 = "UNT";
-match3 = "UNZ"; 
-match4 = "UNB";
-match_len = 3; 
-while readblock(buffer) do
-begin
-if left(buffer,match_len) = match then
-begin
-IF flag = "N"  THEN
-BEGIN
-writeblock(buffer);
-flag="Y";
-cnt_UTH=cnt_UTH+1;
-END
-ELSE
-BEGIN
-flag="N";
-END
-end
-else if left(buffer,match_len) = match2  then
-begin
-IF flag2 = "N"  THEN
-BEGIN
-writeblock(buffer);
-flag2="Y";
-END
-END
-else if left(buffer,match_len) = match3  then
-begin
-VAR_LEFT = left(buffer,4);
-VAR_DELIMITER = mid(buffer,3,1);
-VAR_MID = mid(buffer,4,len(buffer));
-VAR_RIGHT = mid(VAR_MID,strstr(VAR_MID,VAR_DELIMITER),len(VAR_MID));
-NTOA(cnt_UTH,VAR_COUNT);
-buffer = VAR_LEFT +VAR_COUNT+VAR_RIGHT;
-writeblock(buffer);
-cnt_UTH=0;
-end
-else if left(buffer,match_len) = match4  then
-BEGIN
-VAR_PROCESSFLAG_VALUE=buffer;
-WHILE i < 6 do
-BEGIN
-i=i+1;
-VAR_PROCESSFLAG_VALUE = mid(VAR_PROCESSFLAG_VALUE,strstr(VAR_PROCESSFLAG_VALUE,"+")+1,len(VAR_PROCESSFLAG_VALUE));
-messagebox(VAR_PROCESSFLAG_VALUE,100);
-IF (i = 5) THEN
-BEGIN
-VAR_PROCESSFLAG = mid(VAR_PROCESSFLAG_VALUE,0,strstr(VAR_PROCESSFLAG_VALUE,"+"));
-update processdata set xpathresult = VAR_PROCESSFLAG where xpath = "TranslationOutput/ProcessingFlag1";
-END
-END
-END
+Integer cnt_E2EDP01;
+String[100] DTM02;
+cnt_E2EDP01 = 0;
+DTM02="";
+if #S46 !="00" & #S46 !="000" then
+$Application_Data.#TEMP_BAK02="AC";
+if #S46 ="00" | #S46 ="000" then
+$Application_Data.#TEMP_BAK02="AD";
+If #S195 = "001" & exist(#S196) Then
+$Application_Data.#TEMP_BAK03 = #S196;
+If #S195 = "001" Then
+$Application_Data.#TEMP_BAK04=#S198;
+cnt_E2EDP01 = cnt_E2EDP01 + 1;
+DTM02="";
+if DTM02 !="" then
+Begin
+$TEMP_DETAIL[cnt_E2EDP01].#TEMP_DTM01="067";
+$TEMP_DETAIL[cnt_E2EDP01].#TEMP_DTM02=DTM02;
+End
+If exist (#S276) then
+$TEMP_DETAIL[cnt_E2EDP01].#TEMP_ACK02 = aton(#S276);
+if exist (#S277) then
+Begin
+$TEMP_DETAIL[cnt_E2EDP01].#TEMP_PO102 = #S276;
+$TEMP_DETAIL[cnt_E2EDP01].#TEMP_PO103 = #S277;
+End
+if #S277 ="EA" then
+$TEMP_DETAIL[cnt_E2EDP01].#TEMP_ACK03 = #S277;
+If exist(#S281) & exist (#S282) Then
+$TEMP_DETAIL[cnt_E2EDP01].#TEMP_PO104 = #S281;
+If exist(#S297)  Then
+$TEMP_DETAIL[cnt_E2EDP01].#TEMP_ACK01 = "IR";
 else
-BEGIN
-flag="N";
-flag2="N";
-writeblock(buffer);
-END
-end
-$TEMP_H2[1].#TEMP_data="123";
+$TEMP_DETAIL[cnt_E2EDP01].#TEMP_ACK01 = "IA";
+If exist(#S329) & #S327="001"  Then
+$TEMP_DETAIL[cnt_E2EDP01].#TEMP_PO101 = #S329;
+if exist (#S427) then
+DTM02 = #S427;
+if #S499="003" & exist(#S500) then
+Begin
+$TEMP_DETAIL[cnt_E2EDP01].#TEMP_PO106 = "UP";
+$TEMP_DETAIL[cnt_E2EDP01].#TEMP_PO107 = #S500;
+End
+If #S1005 = "001" Then
+$Application_Data.#TEMP_CTT01 = #S1006;
